@@ -75,7 +75,7 @@ body {
 .main-container { 
     width: 100%; 
     max-width: 1200px; 
-    padding: 30px 20px;
+    padding: 30px 20px 80px 20px; /* added bottom padding for bulk bar */
 }
 
 /* ================= CONTROLS AREA ================= */
@@ -83,7 +83,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 30px;
+    margin-bottom: 24px;
 }
 
 .control-grid {
@@ -179,6 +179,32 @@ body {
 .btn-ghost:hover { color: #c9d1d9; background: rgba(177, 186, 196, 0.12); }
 
 /* ================= BOOKMARK LIST ================= */
+
+.list-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 0 8px;
+}
+
+.select-all-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: #c9d1d9;
+    cursor: pointer;
+}
+
+.bm-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #1f6feb;
+    margin: 0;
+}
+
 .bookmark-list-container {
     width: 100%;
     display: flex;
@@ -191,13 +217,25 @@ body {
     background: #161b22;
     border: 1px solid #30363d;
     border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
     transition: border-color 0.2s;
 }
 
 .list-row:hover { border-color: #8b949e; }
+
+.row-content-wrapper {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+}
+
+.checkbox-wrapper {
+    padding-top: 2px;
+}
+
+.row-main-content {
+    flex: 1;
+    min-width: 0; /* Prevents flex blowout with long unbroken URLs */
+}
 
 .row-header {
     display: flex;
@@ -251,6 +289,34 @@ body {
 .btn-icon:hover { background: #30363d; color: #c9d1d9; }
 .btn-icon.delete:hover { background: rgba(248, 81, 73, 0.1); color: #f85149; }
 .btn-icon svg { width: 16px; height: 16px; fill: currentColor; }
+
+
+/* ================= BULK ACTION BAR ================= */
+.bulk-action-bar {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translate(-50%, 20px);
+    background: rgba(22, 27, 34, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid #30363d;
+    padding: 12px 20px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 12px 32px rgba(1, 4, 9, 0.8);
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.bulk-action-bar.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+}
 
 /* ================= MODALS & POPUPS ================= */
 .modal {
@@ -356,4 +422,5 @@ body {
 /* Mobile Responsive */
 @media (max-width: 650px) {
     .control-grid { grid-template-columns: 1fr; }
+    .bulk-action-bar { width: 95%; flex-wrap: wrap; justify-content: center; }
 }
