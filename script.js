@@ -42,7 +42,6 @@ function getHostname(urlStr) {
     try { return new URL(urlStr).hostname.replace('www.', ''); } catch(e) { return 'Unknown'; }
 }
 
-// Helper to generate random hex color
 function getRandomColor() {
     const letters = '0123456789ABCDEF';
     let color = '#';
@@ -52,7 +51,6 @@ function getRandomColor() {
     return color;
 }
 
-// Helper to find tag color
 function getTagColor(tagName) {
     const found = globalTagsData.find(t => t.name === tagName);
     return found ? found.color : '#3b82f6';
@@ -231,7 +229,6 @@ addNewTagBtn.onclick = async () => {
     if (newTagName && newTagName.trim() !== '') {
         const trimmed = newTagName.trim();
         if (!globalTagsData.some(t => t.name === trimmed)) {
-            // Warna acak otomatis untuk tag baru
             const randomColor = getRandomColor();
             globalTagsData.push({ name: trimmed, color: randomColor });
             saveTags(); renderManageTags();
@@ -437,7 +434,6 @@ function renderBookmarks() {
     }
 
     filtered.forEach(bm => {
-        // Sort custom tags to match globalTagsData order
         const sortedCustomTags = (bm.tags.custom || []).sort((a, b) => {
             const indexA = globalTagsData.findIndex(t => t.name === a);
             const indexB = globalTagsData.findIndex(t => t.name === b);
@@ -499,7 +495,7 @@ function cleanTitle(rawTitle, domain) {
 function getFallbackTitle(url) {
     try {
         let segments = new URL(url).pathname.split('/').filter(s => s.length > 0);
-        let title = (segments.pop() || urlObj.hostname).replace(/[-_]/g, ' ');
+        let title = (segments.pop() || new URL(url).hostname).replace(/[-_]/g, ' ');
         return title.replace(/\b\w/g, l => l.toUpperCase());
     } catch (e) { return "Unknown Title"; }
 }
@@ -539,7 +535,6 @@ btn.addEventListener('click', async () => {
     saveData();
     loading.style.display = 'none';
     input.value = ''; searchInput.value = '';
-    pendingNewTags = [];
-    openSelectTagsBtn.innerText = 'Set Tag (0)';
+    // Perbaikan: pendingNewTags TIDAK DIHAPUS agar pilihan tag tetap sama saat menambah link berikutnya
     renderBookmarks();
 });
