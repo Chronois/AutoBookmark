@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Bookmark Tagger</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>🔖 Simpan Bookmark</h1>
+        
+        <div class="input-group">
+            <input type="url" id="urlInput" placeholder="Masukkan link web di sini..." required>
+            <button id="submitBtn">Simpan Link</button>
+        </div>
+        
+        <div class="loading" id="loadingText">Sedang mengekstrak data dari link...</div>
+
+        <!-- Tempat list bookmark akan muncul -->
+        <div id="bookmarkList"></div>
+    </div>
+
+    <!-- Menghubungkan ke file JavaScript eksternal -->
+    <script src="script.js"></script>
+</body>
+</html>
