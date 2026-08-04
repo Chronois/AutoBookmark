@@ -440,7 +440,7 @@ const editModalTitle = document.getElementById('editModalTitle');
 function getCheckboxListHTML(selectedTags) {
     return globalTagsData.map(tagObj => `
         <label class="checkbox-item">
-            <input type="checkbox" value="${tagObj.name}" class="tag-checkbox" ${selectedTags.includes(tagObj.name) ? 'checked' : ''}>
+            <input type="checkbox" value="${tagObj.name}" class="tag-checkbox custom-cb" ${selectedTags.includes(tagObj.name) ? 'checked' : ''}>
             <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
             ${tagObj.name}
         </label>
@@ -448,7 +448,7 @@ function getCheckboxListHTML(selectedTags) {
             const fullVal = `${tagObj.name} ➔ ${sub}`;
             return `
             <label class="checkbox-item sub-checkbox">
-                <input type="checkbox" value="${fullVal}" class="tag-checkbox" ${selectedTags.includes(fullVal) ? 'checked' : ''}>
+                <input type="checkbox" value="${fullVal}" class="tag-checkbox custom-cb" ${selectedTags.includes(fullVal) ? 'checked' : ''}>
                 <span style="display:inline-block; width:10px; height:10px; border-radius:50%; border: 2px solid ${tagObj.color}; margin-right:6px;"></span>
                 ${sub}
             </label>
@@ -569,9 +569,14 @@ window.onclick = (e) => {
 
 // ================= BULK ACTIONS & SELECTION =================
 
-window.toggleBookmarkSelection = function(id, isChecked) {
-    if (isChecked) selectedBookmarkIds.add(id);
-    else selectedBookmarkIds.delete(id);
+window.toggleBookmarkSelection = function(id, isChecked, el) {
+    if (isChecked) {
+        selectedBookmarkIds.add(id);
+        if (el) el.closest('.list-row').classList.add('selected');
+    } else {
+        selectedBookmarkIds.delete(id);
+        if (el) el.closest('.list-row').classList.remove('selected');
+    }
     updateBulkActionBar();
     updateSelectAllState();
 }
@@ -714,31 +719,29 @@ function renderBookmarks() {
         const urlsHTML = (bm.urls || []).map(url => `<a href="${url}" target="_blank" class="bookmark-link">${linkIcon} ${url}</a>`).join('');
 
         const isChecked = selectedBookmarkIds.has(bm.id) ? 'checked' : '';
+        const rowClass = selectedBookmarkIds.has(bm.id) ? 'list-row selected' : 'list-row';
+
         const card = document.createElement('div');
-        card.className = 'list-row';
+        card.className = rowClass;
         card.innerHTML = `
-            <div class="row-content-wrapper">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" class="bm-checkbox" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked)">
-                </div>
-                <div class="row-main-content">
-                    <div class="row-header">
-                        <div style="overflow: hidden; width: 100%;">
-                            <div class="bookmark-title">${bm.title}</div>
-                            <div class="bookmark-link-group">
-                                ${urlsHTML}
-                            </div>
-                        </div>
-                        <div class="action-group">
-                            <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
-                            <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
-                        </div>
-                    </div>
-                    <div class="tag-container">
-                        ${sourceTagsHTML}
-                        ${customTagsHTML}
+            <div class="row-header">
+                <div style="overflow: hidden; width: 100%;">
+                    <div class="bookmark-title">${bm.title}</div>
+                    <div class="bookmark-link-group">
+                        ${urlsHTML}
                     </div>
                 </div>
+                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                    <input type="checkbox" class="bm-checkbox custom-cb" style="margin-top: 6px;" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked, this)" title="Select for bulk action">
+                    <div class="action-group">
+                        <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
+                        <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
+                    </div>
+                </div>
+            </div>
+            <div class="tag-container">
+                ${sourceTagsHTML}
+                ${customTagsHTML}
             </div>
         `;
         list.appendChild(card);
