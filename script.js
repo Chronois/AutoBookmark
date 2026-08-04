@@ -196,8 +196,9 @@ function renderManageTags() {
                 <button class="btn-icon" onclick="editGlobalTag(${idx})" title="Edit tag">${editIcon}</button>
                 <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})" title="Delete tag">${trashIcon}</button>
             </div>
+            ${tagObj.subtags && tagObj.subtags.length > 0 ? `
             <div class="subtags-list">
-                ${(tagObj.subtags || []).map((sub, sIdx) => `
+                ${tagObj.subtags.map((sub, sIdx) => `
                     <div class="tag-edit-item subtag-item" draggable="true" data-parent-index="${idx}" data-sub-index="${sIdx}">
                         <span class="drag-handle" title="Drag to reorder subtag">${dragIcon}</span>
                         <span class="tag-name">${sub}</span>
@@ -206,6 +207,7 @@ function renderManageTags() {
                     </div>
                 `).join('')}
             </div>
+            ` : ''}
         </div>
     `).join('');
 
@@ -692,6 +694,22 @@ document.getElementById('saveBulkTagBtn').onclick = () => {
     updateBulkActionBar();
 };
 
+document.getElementById('removeBulkTagBtn').onclick = () => {
+    const selectedTags = Array.from(document.querySelectorAll('#bulkBmTagsList .tag-checkbox:checked')).map(cb => cb.value);
+    if (selectedTags.length > 0) {
+        bookmarks.forEach(bm => {
+            if (selectedBookmarkIds.has(bm.id) && bm.tags.custom) {
+                bm.tags.custom = bm.tags.custom.filter(t => !selectedTags.includes(t));
+            }
+        });
+        saveData();
+    }
+    selectedBookmarkIds.clear();
+    bulkTagModal.style.display = 'none';
+    renderBookmarks();
+    updateBulkActionBar();
+};
+
 document.getElementById('cancelBulkTagBtn').onclick = () => { bulkTagModal.style.display = 'none'; };
 
 document.getElementById('bulkDeleteBtn').onclick = async () => {
@@ -780,24 +798,28 @@ function renderBookmarks() {
         const card = document.createElement('div');
         card.className = rowClass;
         card.innerHTML = `
-            <div class="row-header">
-                <div style="overflow: hidden; width: 100%;">
-                    <div class="bookmark-title">${bm.title}</div>
-                    <div class="bookmark-link-group">
-                        ${urlsHTML}
+            <div class="row-content-wrapper">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" class="bm-checkbox custom-cb" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked, this)" title="Select for bulk action">
+                </div>
+                <div class="row-main-content">
+                    <div class="row-header">
+                        <div style="overflow: hidden; width: 100%;">
+                            <div class="bookmark-title">${bm.title}</div>
+                            <div class="bookmark-link-group">
+                                ${urlsHTML}
+                            </div>
+                        </div>
+                        <div class="action-group">
+                            <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
+                            <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
+                        </div>
+                    </div>
+                    <div class="tag-container">
+                        ${sourceTagsHTML}
+                        ${customTagsHTML}
                     </div>
                 </div>
-                <div style="display: flex; align-items: flex-start; gap: 12px;">
-                    <input type="checkbox" class="bm-checkbox custom-cb" style="margin-top: 6px;" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked, this)" title="Select for bulk action">
-                    <div class="action-group">
-                        <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
-                        <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
-                    </div>
-                </div>
-            </div>
-            <div class="tag-container">
-                ${sourceTagsHTML}
-                ${customTagsHTML}
             </div>
         `;
         list.appendChild(card);
