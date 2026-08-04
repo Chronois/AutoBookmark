@@ -16,11 +16,10 @@ let globalTags = JSON.parse(localStorage.getItem('myTags')) || ['Bagus', 'Menari
 let pendingNewTags = []; 
 let editingBookmarkId = null; 
 
-// Simpan Data
 function saveData() { localStorage.setItem('myBookmarks', JSON.stringify(bookmarks)); }
 function saveTags() { localStorage.setItem('myTags', JSON.stringify(globalTags)); }
 
-// ================= CUSTOM DIALOGS (PENGGANTI PROMPT & CONFIRM) =================
+// ================= CUSTOM DIALOGS =================
 function customPrompt(message, defaultValue = '') {
     return new Promise((resolve) => {
         const modal = document.getElementById('customPromptModal');
@@ -177,20 +176,17 @@ cancelEditBtn.onclick = () => editBookmarkModal.style.display = 'none';
 // ================= 3. FILTER =================
 
 const filterOrder = document.getElementById('filterOrder');
-const filterType = document.getElementById('filterType');
 const filterSource = document.getElementById('filterSource');
 const filterTagsList = document.getElementById('filterTagsList');
 
-let activeFilters = { order: 'newest', type: 'all', source: 'all', customTags: [] };
+let activeFilters = { order: 'newest', source: 'all', customTags: [] };
 
 function populateFilters() {
-    let types = new Set(), sources = new Set();
-    bookmarks.forEach(bm => { types.add(bm.tags.type); sources.add(bm.tags.source); });
+    let sources = new Set();
+    bookmarks.forEach(bm => { sources.add(bm.tags.source); });
 
-    filterType.innerHTML = '<option value="all">All</option>' + [...types].map(t => `<option value="${t}">${t}</option>`).join('');
     filterSource.innerHTML = '<option value="all">All</option>' + [...sources].map(s => `<option value="${s}">${s}</option>`).join('');
-    
-    filterType.value = activeFilters.type; filterSource.value = activeFilters.source;
+    filterSource.value = activeFilters.source;
 
     filterTagsList.innerHTML = globalTags.map(tag => `
         <label class="checkbox-item">
@@ -202,11 +198,12 @@ function populateFilters() {
 
 document.getElementById('openFilterBtn').onclick = () => { populateFilters(); filterModal.style.display = 'flex'; }
 document.getElementById('resetFilterBtn').onclick = () => { 
-    activeFilters = { order: 'newest', type: 'all', source: 'all', customTags: [] };
+    activeFilters = { order: 'newest', source: 'all', customTags: [] };
     filterOrder.value = 'newest'; populateFilters(); 
 }
 document.getElementById('applyFilterBtn').onclick = () => {
-    activeFilters.order = filterOrder.value; activeFilters.type = filterType.value; activeFilters.source = filterSource.value;
+    activeFilters.order = filterOrder.value; 
+    activeFilters.source = filterSource.value;
     activeFilters.customTags = Array.from(filterTagsList.querySelectorAll('input:checked')).map(cb => cb.value);
     filterModal.style.display = 'none'; renderBookmarks();
 }
@@ -227,11 +224,10 @@ function renderBookmarks() {
 
     let filtered = bookmarks.filter(bm => {
         const customString = bm.tags.custom ? bm.tags.custom.join(' ') : '';
-        const matchSearch = `${bm.title} ${bm.original_url} ${bm.tags.source} ${bm.tags.type} ${customString}`.toLowerCase().includes(term);
-        const matchType = activeFilters.type === 'all' || bm.tags.type === activeFilters.type;
+        const matchSearch = `${bm.title} ${bm.original_url} ${bm.tags.source} ${customString}`.toLowerCase().includes(term);
         const matchSource = activeFilters.source === 'all' || bm.tags.source === activeFilters.source;
         const matchTags = activeFilters.customTags.length === 0 || activeFilters.customTags.some(t => bm.tags.custom && bm.tags.custom.includes(t));
-        return matchSearch && matchType && matchSource && matchTags;
+        return matchSearch && matchSource && matchTags;
     });
 
     filtered.sort((a, b) => {
@@ -249,8 +245,7 @@ function renderBookmarks() {
             <a href="${bm.original_url}" target="_blank" class="bookmark-title">${bm.title}</a>
             <a href="${bm.original_url}" target="_blank" class="bookmark-link">${bm.original_url}</a>
             <div class="tag-container">
-                <span class="tag source">🌐 Source: ${bm.tags.source}</span>
-                <span class="tag type">🎮 Type: ${bm.tags.type}</span>
+                <span class="tag source">🌐 ${bm.tags.source}</span>
                 ${customTagsHTML}
                 <div class="action-group">
                     <button class="btn-sm btn-edit" onclick="editBookmark(${bm.id})">Edit</button>
@@ -280,6 +275,7 @@ function cleanTitle(rawTitle, domain) {
     cleaned = cleaned.replace(siteRegex, '').replace(/(skidrow & reloaded games|skidrow|reloaded)/gi, '');
     return cleaned.replace(/\[\s*\]/g, '').replace(/[-|:]+\s*$/g, '').replace(/^\s*[-|:]+/g, '').replace(/\s+/g, ' ').trim();
 }
+
 function getFallbackTitle(url) {
     try {
         let segments = new URL(url).pathname.split('/').filter(s => s.length > 0);
@@ -313,14 +309,11 @@ btn.addEventListener('click', async () => {
 
     if (!rawTitle || rawTitle.includes('Just a moment') || rawTitle.includes('Cloudflare')) rawTitle = getFallbackTitle(url);
 
-    let typeTag = 'Lainnya'; 
-    if (['game', 'steam', 'skidrow', 'lewdzone', 'repack'].some(kw => url.toLowerCase().includes(kw))) typeTag = 'Game';
-
     bookmarks.unshift({
         id: Date.now(),
         original_url: url,
         title: cleanTitle(rawTitle, sourceTag),
-        tags: { source: sourceTag, type: typeTag, custom: [...pendingNewTags] }
+        tags: { source: sourceTag, custom: [...pendingNewTags] }
     });
 
     saveData();
