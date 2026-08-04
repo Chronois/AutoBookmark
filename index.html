@@ -10,19 +10,24 @@
 <body>
 
     <div class="container">
-        <div class="header-container">
-            <h1>🔖 AutoBookmark</h1>
-            <div class="search-wrapper">
+        <!-- Judul Web -->
+        <h1 class="app-title">🔖 AutoBookmark</h1>
+        
+        <!-- Area Kontrol (Sejajar Sempurna) -->
+        <div class="controls-container">
+            <!-- Baris 1: Pencarian & Filter -->
+            <div class="control-row">
                 <input type="text" id="searchInput" class="search-input" placeholder="🔍 Cari link, tag, sumber...">
                 <button id="openManageTagsBtn" class="btn btn-secondary">🏷️ Tags</button>
                 <button id="openFilterBtn" class="btn btn-success">⚙️ Filter</button>
             </div>
-        </div>
-        
-        <div class="input-group">
-            <input type="url" id="urlInput" placeholder="Masukkan link web di sini..." required>
-            <button id="openSelectTagsBtn" class="btn btn-outline">🏷️ Set Tag (0)</button>
-            <button id="submitBtn" class="btn btn-primary">Simpan</button>
+            
+            <!-- Baris 2: Input URL & Simpan -->
+            <div class="control-row">
+                <input type="url" id="urlInput" placeholder="Masukkan link web di sini..." required>
+                <button id="openSelectTagsBtn" class="btn btn-outline">🏷️ Set Tag (0)</button>
+                <button id="submitBtn" class="btn btn-primary">Simpan</button>
+            </div>
         </div>
         
         <div class="loading" id="loadingText">
@@ -73,7 +78,7 @@
         </div>
     </div>
 
-    <!-- Modal Edit Bookmark & Set New Bookmark Tags -->
+    <!-- Modal Edit Bookmark -->
     <div id="editBookmarkModal" class="modal">
         <div class="modal-content">
             <h3 id="editModalTitle" style="margin-top:0; margin-bottom:15px; font-size:1.2rem;">Edit Bookmark</h3>
