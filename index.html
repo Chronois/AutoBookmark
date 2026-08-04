@@ -5,63 +5,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoBookmark</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div class="container">
-        <!-- Judul Web -->
-        <h1 class="app-title">🔖 AutoBookmark</h1>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1 class="app-title">🔖 AutoBookmark</h1>
+        </header>
         
-        <!-- Area Kontrol (Sejajar Sempurna) -->
-        <div class="controls-container">
-            <!-- Baris 1: Pencarian & Filter -->
-            <div class="control-row">
-                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Cari link, tag, sumber...">
+        <!-- Area Kontrol Terpadu -->
+        <section class="controls-section">
+            <div class="control-grid">
+                <input type="text" id="searchInput" class="input-field" placeholder="🔍 Cari judul, tag, atau sumber...">
                 <button id="openManageTagsBtn" class="btn btn-secondary">🏷️ Tags</button>
                 <button id="openFilterBtn" class="btn btn-success">⚙️ Filter</button>
             </div>
             
-            <!-- Baris 2: Input URL & Simpan -->
-            <div class="control-row">
-                <input type="url" id="urlInput" placeholder="Masukkan link web di sini..." required>
+            <div class="control-grid">
+                <input type="url" id="urlInput" class="input-field" placeholder="Masukkan link web di sini..." required>
                 <button id="openSelectTagsBtn" class="btn btn-outline">🏷️ Set Tag (0)</button>
                 <button id="submitBtn" class="btn btn-primary">Simpan</button>
             </div>
-        </div>
+        </section>
         
         <div class="loading" id="loadingText">
-            <span class="spinner"></span> Mengekstrak data...
+            <span class="spinner"></span> Memproses tautan...
         </div>
 
-        <div id="bookmarkList"></div>
+        <!-- Daftar Bookmark (List View) -->
+        <section class="bookmark-list-container" id="bookmarkList">
+            <!-- Item akan di-generate di sini -->
+        </section>
     </div>
 
+    <!-- ================= MODALS ================= -->
+    
     <!-- Modal Filter -->
     <div id="filterModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <button id="resetFilterBtn" class="reset-btn">Reset</button>
-                <button id="applyFilterBtn" class="btn btn-success">Terapkan Filter</button>
+                <h3>Filter Bookmark</h3>
             </div>
             <div class="modal-body">
                 <div class="filter-group">
-                    <label>Order</label>
-                    <select id="filterOrder">
-                        <option value="newest">Default (Terbaru)</option>
-                        <option value="oldest">Terlama</option>
-                        <option value="az">A-Z</option>
-                        <option value="za">Z-A</option>
+                    <label>Urutkan Berdasarkan</label>
+                    <select id="filterOrder" class="input-field">
+                        <option value="newest">Terbaru Ditambahkan</option>
+                        <option value="oldest">Terlama Ditambahkan</option>
+                        <option value="az">Alfabet (A-Z)</option>
+                        <option value="za">Alfabet (Z-A)</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label>Source</label>
-                    <select id="filterSource"><option value="all">All</option></select>
+                    <label>Sumber (Source)</label>
+                    <select id="filterSource" class="input-field"><option value="all">Semua Sumber</option></select>
                 </div>
                 <div class="filter-tags-group">
-                    <div class="tags-header">Custom Tags</div>
+                    <label>Custom Tags</label>
                     <div id="filterTagsList" class="checkbox-list"></div>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button id="resetFilterBtn" class="btn btn-ghost">Reset</button>
+                <button id="applyFilterBtn" class="btn btn-primary">Terapkan Filter</button>
             </div>
         </div>
     </div>
@@ -69,30 +77,33 @@
     <!-- Modal Manage Global Tags -->
     <div id="manageTagsModal" class="modal">
         <div class="modal-content manage-tags-content">
-            <div class="manage-header">
-                <button class="back-icon" id="closeManageTagsBtn">←</button>
-                <h3>Edit categories</h3>
+            <div class="modal-header">
+                <h3>Kelola Tags</h3>
+                <button class="btn-close" id="closeManageTagsBtn">✕</button>
             </div>
             <div class="tags-list-container" id="globalTagsList"></div>
-            <button id="addNewTagBtn" class="btn btn-success" style="align-self: flex-end; margin-top: 15px;">+ Add Tag</button>
+            <button id="addNewTagBtn" class="btn btn-outline" style="margin-top: 15px; width: 100%;">+ Tambah Tag Baru</button>
         </div>
     </div>
 
     <!-- Modal Edit Bookmark -->
     <div id="editBookmarkModal" class="modal">
         <div class="modal-content">
-            <h3 id="editModalTitle" style="margin-top:0; margin-bottom:15px; font-size:1.2rem;">Edit Bookmark</h3>
-            
-            <div id="editTitleGroup" style="margin-bottom:15px;">
-                <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:5px;">Judul Tautan</label>
-                <input type="text" id="editBmTitle" style="width:100%;" placeholder="Judul...">
+            <div class="modal-header">
+                <h3 id="editModalTitle">Edit Bookmark</h3>
             </div>
-            
-            <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:5px;">Pilih Custom Tags</label>
-            <div class="checkbox-list" id="editBmTagsList" style="max-height: 200px; border: 1px solid #334155; padding: 10px; border-radius:8px;"></div>
-            
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-                <button id="cancelEditBtn" class="reset-btn" style="color:#ef4444;">Batal</button>
+            <div class="modal-body">
+                <div id="editTitleGroup" class="filter-group">
+                    <label>Judul Tautan</label>
+                    <input type="text" id="editBmTitle" class="input-field" placeholder="Masukkan judul...">
+                </div>
+                <div class="filter-tags-group">
+                    <label>Pilih Tags</label>
+                    <div id="editBmTagsList" class="checkbox-list edit-tags-box"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelEditBtn" class="btn btn-ghost" style="color: #ef4444;">Batal</button>
                 <button id="saveEditBmBtn" class="btn btn-primary">Simpan</button>
             </div>
         </div>
@@ -101,11 +112,11 @@
     <!-- CUSTOM PROMPT MODAL -->
     <div id="customPromptModal" class="modal" style="z-index: 999;">
         <div class="modal-content custom-dialog">
-            <h3>Pemberitahuan</h3>
-            <p id="promptMessage"></p>
-            <input type="text" id="promptInput" autocomplete="off">
-            <div class="dialog-actions">
-                <button id="promptCancel" class="btn btn-secondary">Batal</button>
+            <h3 class="dialog-title">Input Dibutuhkan</h3>
+            <p id="promptMessage" class="dialog-msg"></p>
+            <input type="text" id="promptInput" class="input-field" autocomplete="off">
+            <div class="modal-footer" style="margin-top: 15px;">
+                <button id="promptCancel" class="btn btn-ghost">Batal</button>
                 <button id="promptOk" class="btn btn-primary">Oke</button>
             </div>
         </div>
@@ -114,11 +125,11 @@
     <!-- CUSTOM CONFIRM MODAL -->
     <div id="customConfirmModal" class="modal" style="z-index: 999;">
         <div class="modal-content custom-dialog">
-            <h3>Konfirmasi</h3>
-            <p id="confirmMessage"></p>
-            <div class="dialog-actions">
-                <button id="confirmCancel" class="btn btn-secondary">Batal</button>
-                <button id="confirmOk" class="btn btn-primary">Oke</button>
+            <h3 class="dialog-title">Konfirmasi</h3>
+            <p id="confirmMessage" class="dialog-msg"></p>
+            <div class="modal-footer" style="margin-top: 15px;">
+                <button id="confirmCancel" class="btn btn-ghost">Batal</button>
+                <button id="confirmOk" class="btn btn-primary">Ya, Lanjutkan</button>
             </div>
         </div>
     </div>
