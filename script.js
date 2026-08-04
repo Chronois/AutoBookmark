@@ -19,6 +19,10 @@ let editingBookmarkId = null;
 function saveData() { localStorage.setItem('myBookmarks', JSON.stringify(bookmarks)); }
 function saveTags() { localStorage.setItem('myTags', JSON.stringify(globalTags)); }
 
+// ================= ICONS SVG =================
+const editIcon = `<svg viewBox="0 0 16 16"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81l-7.246 7.246a.25.25 0 0 0-.06.1l-.621 2.172 2.172-.62a.25.25 0 0 0 .1-.06l7.094-7.093Z"></path></svg>`;
+const trashIcon = `<svg viewBox="0 0 16 16"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"></path></svg>`;
+
 // ================= CUSTOM DIALOGS =================
 function customPrompt(message, defaultValue = '') {
     return new Promise((resolve) => {
@@ -65,16 +69,12 @@ const closeManageTagsBtn = document.getElementById('closeManageTagsBtn');
 const globalTagsList = document.getElementById('globalTagsList');
 const addNewTagBtn = document.getElementById('addNewTagBtn');
 
-const pencilIcon = `<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
-const trashIcon = `<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
-
 function renderManageTags() {
     globalTagsList.innerHTML = globalTags.map((tag, idx) => `
         <div class="tag-edit-item">
-            <span class="drag-handle">=</span>
             <span class="tag-name">${tag}</span>
-            <button class="tag-icon-btn" onclick="editGlobalTag(${idx})">${pencilIcon}</button>
-            <button class="tag-icon-btn" onclick="deleteGlobalTag(${idx})">${trashIcon}</button>
+            <button class="btn-icon" onclick="editGlobalTag(${idx})">${editIcon}</button>
+            <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})">${trashIcon}</button>
         </div>
     `).join('');
 }
@@ -83,7 +83,7 @@ openManageTagsBtn.onclick = () => { renderManageTags(); manageTagsModal.style.di
 closeManageTagsBtn.onclick = () => manageTagsModal.style.display = 'none';
 
 addNewTagBtn.onclick = async () => {
-    const newTag = await customPrompt("Masukkan nama kategori/tag baru:");
+    const newTag = await customPrompt("Masukkan nama tag baru:");
     if (newTag && newTag.trim() !== '' && !globalTags.includes(newTag.trim())) {
         globalTags.push(newTag.trim());
         saveTags(); renderManageTags();
@@ -92,7 +92,7 @@ addNewTagBtn.onclick = async () => {
 
 window.editGlobalTag = async function(idx) {
     const oldTag = globalTags[idx];
-    const newTag = await customPrompt("Edit nama kategori/tag:", oldTag);
+    const newTag = await customPrompt("Edit nama tag:", oldTag);
     if (newTag && newTag.trim() !== '' && newTag !== oldTag) {
         globalTags[idx] = newTag.trim();
         bookmarks.forEach(bm => {
@@ -107,7 +107,7 @@ window.editGlobalTag = async function(idx) {
 
 window.deleteGlobalTag = async function(idx) {
     const tagToDelete = globalTags[idx];
-    const isConfirmed = await customConfirm(`Yakin ingin menghapus tag "${tagToDelete}"?`);
+    const isConfirmed = await customConfirm(`Hapus tag "${tagToDelete}"?`);
     if (isConfirmed) {
         globalTags.splice(idx, 1);
         bookmarks.forEach(bm => {
@@ -185,7 +185,7 @@ function populateFilters() {
     let sources = new Set();
     bookmarks.forEach(bm => { sources.add(bm.tags.source); });
 
-    filterSource.innerHTML = '<option value="all">All</option>' + [...sources].map(s => `<option value="${s}">${s}</option>`).join('');
+    filterSource.innerHTML = '<option value="all">Semua Sumber</option>' + [...sources].map(s => `<option value="${s}">${s}</option>`).join('');
     filterSource.value = activeFilters.source;
 
     filterTagsList.innerHTML = globalTags.map(tag => `
@@ -237,20 +237,30 @@ function renderBookmarks() {
         return 0; 
     });
 
+    if (filtered.length === 0) {
+        list.innerHTML = `<div style="text-align:center; padding:30px; color:#8b949e; font-size:13.5px;">Tidak ada tautan yang ditemukan.</div>`;
+        return;
+    }
+
     filtered.forEach(bm => {
-        const customTagsHTML = (bm.tags.custom || []).map(tag => `<span class="tag custom">🏷️ ${tag}</span>`).join('');
+        const customTagsHTML = (bm.tags.custom || []).map(tag => `<span class="tag custom">${tag}</span>`).join('');
+        
         const card = document.createElement('div');
-        card.className = 'result-card';
+        card.className = 'list-row';
         card.innerHTML = `
-            <a href="${bm.original_url}" target="_blank" class="bookmark-title">${bm.title}</a>
-            <a href="${bm.original_url}" target="_blank" class="bookmark-link">${bm.original_url}</a>
+            <div class="row-header">
+                <div style="overflow: hidden;">
+                    <a href="${bm.original_url}" target="_blank" class="bookmark-title">${bm.title}</a>
+                    <a href="${bm.original_url}" target="_blank" class="bookmark-link">${bm.original_url}</a>
+                </div>
+                <div class="action-group">
+                    <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
+                    <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Hapus">${trashIcon}</button>
+                </div>
+            </div>
             <div class="tag-container">
                 <span class="tag source">🌐 ${bm.tags.source}</span>
                 ${customTagsHTML}
-                <div class="action-group">
-                    <button class="btn-sm btn-edit" onclick="editBookmark(${bm.id})">Edit</button>
-                    <button class="btn-sm btn-delete" onclick="deleteBookmark(${bm.id})">Hapus</button>
-                </div>
             </div>
         `;
         list.appendChild(card);
@@ -258,7 +268,7 @@ function renderBookmarks() {
 }
 
 window.deleteBookmark = async function(id) {
-    const isConfirmed = await customConfirm('Hapus tautan ini?');
+    const isConfirmed = await customConfirm('Hapus tautan ini dari daftar?');
     if(isConfirmed) {
         bookmarks = bookmarks.filter(b => b.id !== id);
         saveData(); renderBookmarks();
@@ -286,13 +296,13 @@ function getFallbackTitle(url) {
 
 btn.addEventListener('click', async () => {
     const url = input.value;
-    if (!url) { await customConfirm('Mohon masukkan URL terlebih dahulu!'); return; }
+    if (!url) { await customConfirm('Tautan tidak boleh kosong!'); return; }
 
     loading.style.display = 'block';
     let rawTitle = '', sourceTag = 'Unknown';
     
     try { sourceTag = new URL(url).hostname.replace('www.', ''); } 
-    catch(e) { await customConfirm('URL tidak valid.'); loading.style.display = 'none'; return; }
+    catch(e) { await customConfirm('Format tautan tidak valid.'); loading.style.display = 'none'; return; }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1500);
