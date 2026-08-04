@@ -12,7 +12,9 @@ const editBookmarkModal = document.getElementById('editBookmarkModal');
 // Data
 let bookmarks = JSON.parse(localStorage.getItem('myBookmarks')) || [];
 bookmarks = bookmarks.map(bm => ({ ...bm, id: bm.id || Date.now() + Math.random() }));
-let globalTags = JSON.parse(localStorage.getItem('myTags')) || ['Bagus', 'Menarik', 'Ringan', 'End', 'Axed'];
+
+// Default Tags translated to English
+let globalTags = JSON.parse(localStorage.getItem('myTags')) || ['Favorite', 'Read Later', 'Reference', 'Completed', 'Dropped'];
 let pendingNewTags = []; 
 let editingBookmarkId = null; 
 
@@ -73,8 +75,8 @@ function renderManageTags() {
     globalTagsList.innerHTML = globalTags.map((tag, idx) => `
         <div class="tag-edit-item">
             <span class="tag-name">${tag}</span>
-            <button class="btn-icon" onclick="editGlobalTag(${idx})">${editIcon}</button>
-            <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})">${trashIcon}</button>
+            <button class="btn-icon" onclick="editGlobalTag(${idx})" title="Edit tag">${editIcon}</button>
+            <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})" title="Delete tag">${trashIcon}</button>
         </div>
     `).join('');
 }
@@ -83,7 +85,7 @@ openManageTagsBtn.onclick = () => { renderManageTags(); manageTagsModal.style.di
 closeManageTagsBtn.onclick = () => manageTagsModal.style.display = 'none';
 
 addNewTagBtn.onclick = async () => {
-    const newTag = await customPrompt("Masukkan nama tag baru:");
+    const newTag = await customPrompt("Enter new tag name:");
     if (newTag && newTag.trim() !== '' && !globalTags.includes(newTag.trim())) {
         globalTags.push(newTag.trim());
         saveTags(); renderManageTags();
@@ -92,7 +94,7 @@ addNewTagBtn.onclick = async () => {
 
 window.editGlobalTag = async function(idx) {
     const oldTag = globalTags[idx];
-    const newTag = await customPrompt("Edit nama tag:", oldTag);
+    const newTag = await customPrompt("Edit tag name:", oldTag);
     if (newTag && newTag.trim() !== '' && newTag !== oldTag) {
         globalTags[idx] = newTag.trim();
         bookmarks.forEach(bm => {
@@ -107,7 +109,7 @@ window.editGlobalTag = async function(idx) {
 
 window.deleteGlobalTag = async function(idx) {
     const tagToDelete = globalTags[idx];
-    const isConfirmed = await customConfirm(`Hapus tag "${tagToDelete}"?`);
+    const isConfirmed = await customConfirm(`Delete tag "${tagToDelete}"?`);
     if (isConfirmed) {
         globalTags.splice(idx, 1);
         bookmarks.forEach(bm => {
@@ -138,7 +140,7 @@ function renderCheckboxList(selectedTags) {
 
 openSelectTagsBtn.onclick = () => {
     editingBookmarkId = null;
-    editModalTitle.innerText = "Pilih Custom Tags";
+    editModalTitle.innerText = "Select Custom Tags";
     editTitleGroup.style.display = 'none';
     renderCheckboxList(pendingNewTags);
     editBookmarkModal.style.display = 'flex';
@@ -185,7 +187,7 @@ function populateFilters() {
     let sources = new Set();
     bookmarks.forEach(bm => { sources.add(bm.tags.source); });
 
-    filterSource.innerHTML = '<option value="all">Semua Sumber</option>' + [...sources].map(s => `<option value="${s}">${s}</option>`).join('');
+    filterSource.innerHTML = '<option value="all">All Sources</option>' + [...sources].map(s => `<option value="${s}">${s}</option>`).join('');
     filterSource.value = activeFilters.source;
 
     filterTagsList.innerHTML = globalTags.map(tag => `
@@ -214,7 +216,7 @@ window.onclick = (e) => {
     if (e.target == editBookmarkModal) editBookmarkModal.style.display = 'none'; 
 }
 
-// ================= RENDER UTAMA =================
+// ================= MAIN RENDER =================
 
 searchInput.addEventListener('input', renderBookmarks);
 
@@ -238,7 +240,7 @@ function renderBookmarks() {
     });
 
     if (filtered.length === 0) {
-        list.innerHTML = `<div style="text-align:center; padding:30px; color:#8b949e; font-size:13.5px;">Tidak ada tautan yang ditemukan.</div>`;
+        list.innerHTML = `<div style="text-align:center; padding:30px; color:#8b949e; font-size:13.5px;">No links found.</div>`;
         return;
     }
 
@@ -255,7 +257,7 @@ function renderBookmarks() {
                 </div>
                 <div class="action-group">
                     <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
-                    <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Hapus">${trashIcon}</button>
+                    <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
                 </div>
             </div>
             <div class="tag-container">
@@ -268,7 +270,7 @@ function renderBookmarks() {
 }
 
 window.deleteBookmark = async function(id) {
-    const isConfirmed = await customConfirm('Hapus tautan ini dari daftar?');
+    const isConfirmed = await customConfirm('Remove this link from the list?');
     if(isConfirmed) {
         bookmarks = bookmarks.filter(b => b.id !== id);
         saveData(); renderBookmarks();
@@ -277,7 +279,7 @@ window.deleteBookmark = async function(id) {
 
 renderBookmarks();
 
-// ================= PROSES SIMPAN LINK BARU =================
+// ================= NEW LINK PROCESS =================
 
 function cleanTitle(rawTitle, domain) {
     let cleaned = rawTitle.replace(/(free download|build\s*\d*)/gi, '');
@@ -291,18 +293,18 @@ function getFallbackTitle(url) {
         let segments = new URL(url).pathname.split('/').filter(s => s.length > 0);
         let title = (segments.pop() || new URL(url).hostname).replace(/[-_]/g, ' ');
         return title.replace(/\b\w/g, l => l.toUpperCase());
-    } catch (e) { return "Judul Tidak Diketahui"; }
+    } catch (e) { return "Unknown Title"; }
 }
 
 btn.addEventListener('click', async () => {
     const url = input.value;
-    if (!url) { await customConfirm('Tautan tidak boleh kosong!'); return; }
+    if (!url) { await customConfirm('Link cannot be empty!'); return; }
 
     loading.style.display = 'block';
     let rawTitle = '', sourceTag = 'Unknown';
     
     try { sourceTag = new URL(url).hostname.replace('www.', ''); } 
-    catch(e) { await customConfirm('Format tautan tidak valid.'); loading.style.display = 'none'; return; }
+    catch(e) { await customConfirm('Invalid link format.'); loading.style.display = 'none'; return; }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1500);
