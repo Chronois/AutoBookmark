@@ -9,6 +9,11 @@ const loading = document.getElementById('loadingText');
 const filterModal = document.getElementById('filterModal');
 const manageTagsModal = document.getElementById('manageTagsModal');
 const editBookmarkModal = document.getElementById('editBookmarkModal');
+const bulkTagModal = document.getElementById('bulkTagModal');
+
+// Bulk Selection State
+let selectedBookmarkIds = new Set();
+let currentlyVisibleIds = [];
 
 // Data Fetch & Migration
 let bookmarks = JSON.parse(localStorage.getItem('myBookmarks')) || [];
@@ -32,7 +37,7 @@ if (globalTagsData.length === 0) {
     ];
 }
 
-// Migration for adding subtags array to old tags format
+// Migration for adding subtags array
 globalTagsData = globalTagsData.map(t => {
     if (typeof t === 'string') return { name: t, color: getRandomColor(), subtags: [] };
     if (!t.subtags) t.subtags = [];
@@ -50,7 +55,6 @@ function getHostname(urlStr) {
 }
 
 function getRandomColor() {
-    // Generate only light/bright colors by keeping RGB values between 127 and 255
     const r = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
     const g = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
     const b = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
@@ -211,7 +215,6 @@ function renderManageTags() {
 }
 
 function initDragAndDrop() {
-    // 1. Parent Tags Drag & Drop
     const parentItems = globalTagsList.querySelectorAll('.tag-group-container');
     parentItems.forEach(item => {
         item.addEventListener('dragstart', (e) => {
@@ -253,7 +256,6 @@ function initDragAndDrop() {
         });
     });
 
-    // 2. Subtags Drag & Drop
     const subItems = globalTagsList.querySelectorAll('.subtag-item');
     subItems.forEach(item => {
         item.addEventListener('dragstart', (e) => {
@@ -322,7 +324,6 @@ addNewTagBtn.onclick = async () => {
     }
 }
 
-// Rename Parent Tag
 window.editGlobalTag = async function(idx) {
     const oldObj = globalTagsData[idx];
     const newName = await customPrompt("Edit tag name:", oldObj.name, "Edit Tag");
@@ -365,7 +366,6 @@ window.deleteGlobalTag = async function(idx) {
     }
 }
 
-// Add Subtag
 window.addSubtag = async function(idx) {
     const parentName = globalTagsData[idx].name;
     const newSub = await customPrompt(`Add subtag to "${parentName}":`, "", "Add Subtag");
@@ -380,7 +380,6 @@ window.addSubtag = async function(idx) {
     }
 }
 
-// Rename Subtag
 window.editSubtag = async function(pIdx, sIdx) {
     const oldSub = globalTagsData[pIdx].subtags[sIdx];
     const parentName = globalTagsData[pIdx].name;
@@ -438,8 +437,8 @@ const editUrlList = document.getElementById('editUrlList');
 const addNewUrlBtn = document.getElementById('addNewUrlBtn');
 const editModalTitle = document.getElementById('editModalTitle');
 
-function renderCheckboxList(selectedTags) {
-    editBmTagsList.innerHTML = globalTagsData.map(tagObj => `
+function getCheckboxListHTML(selectedTags) {
+    return globalTagsData.map(tagObj => `
         <label class="checkbox-item">
             <input type="checkbox" value="${tagObj.name}" class="tag-checkbox" ${selectedTags.includes(tagObj.name) ? 'checked' : ''}>
             <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
@@ -456,6 +455,10 @@ function renderCheckboxList(selectedTags) {
             `;
         }).join('')}
     `).join('');
+}
+
+function renderCheckboxList(selectedTags) {
+    editBmTagsList.innerHTML = getCheckboxListHTML(selectedTags);
 }
 
 function renderEditUrlInputs(urlsArray) {
@@ -542,23 +545,7 @@ function populateFilters() {
     filterSource.innerHTML = '<option value="all">All Sources</option>' + [...sources].map(s => `<option value="${s}">${s}</option>`).join('');
     filterSource.value = activeFilters.source;
 
-    filterTagsList.innerHTML = globalTagsData.map(tagObj => `
-        <label class="checkbox-item">
-            <input type="checkbox" value="${tagObj.name}" ${activeFilters.customTags.includes(tagObj.name) ? 'checked' : ''}>
-            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
-            ${tagObj.name}
-        </label>
-        ${(tagObj.subtags || []).map(sub => {
-            const fullVal = `${tagObj.name} ➔ ${sub}`;
-            return `
-            <label class="checkbox-item sub-checkbox">
-                <input type="checkbox" value="${fullVal}" ${activeFilters.customTags.includes(fullVal) ? 'checked' : ''}>
-                <span style="display:inline-block; width:10px; height:10px; border-radius:50%; border: 2px solid ${tagObj.color}; margin-right:6px;"></span>
-                ${sub}
-            </label>
-            `;
-        }).join('')}
-    `).join('');
+    filterTagsList.innerHTML = getCheckboxListHTML(activeFilters.customTags);
 }
 
 document.getElementById('openFilterBtn').onclick = () => { populateFilters(); filterModal.style.display = 'flex'; }
@@ -577,14 +564,98 @@ window.onclick = (e) => {
     if (e.target == filterModal) filterModal.style.display = 'none'; 
     if (e.target == manageTagsModal) manageTagsModal.style.display = 'none'; 
     if (e.target == editBookmarkModal) editBookmarkModal.style.display = 'none'; 
+    if (e.target == bulkTagModal) bulkTagModal.style.display = 'none';
 }
+
+// ================= BULK ACTIONS & SELECTION =================
+
+window.toggleBookmarkSelection = function(id, isChecked) {
+    if (isChecked) selectedBookmarkIds.add(id);
+    else selectedBookmarkIds.delete(id);
+    updateBulkActionBar();
+    updateSelectAllState();
+}
+
+function updateBulkActionBar() {
+    const bar = document.getElementById('bulkActionBar');
+    const count = document.getElementById('bulkCount');
+    if (selectedBookmarkIds.size > 0) {
+        count.innerText = `${selectedBookmarkIds.size} selected`;
+        bar.classList.add('show');
+    } else {
+        bar.classList.remove('show');
+    }
+}
+
+function updateSelectAllState() {
+    const selectAllCb = document.getElementById('selectAllCb');
+    if (currentlyVisibleIds.length === 0) {
+        selectAllCb.checked = false;
+        return;
+    }
+    const allSelected = currentlyVisibleIds.every(id => selectedBookmarkIds.has(id));
+    selectAllCb.checked = allSelected;
+}
+
+document.getElementById('selectAllCb').addEventListener('change', (e) => {
+    const isChecked = e.target.checked;
+    currentlyVisibleIds.forEach(id => {
+        if (isChecked) selectedBookmarkIds.add(id);
+        else selectedBookmarkIds.delete(id);
+    });
+    renderBookmarks(); 
+    updateBulkActionBar();
+});
+
+// Bulk Tags Modals
+document.getElementById('bulkTagsBtn').onclick = () => {
+    document.getElementById('bulkBmTagsList').innerHTML = getCheckboxListHTML([]);
+    bulkTagModal.style.display = 'flex';
+};
+
+document.getElementById('saveBulkTagBtn').onclick = () => {
+    const selectedTags = Array.from(document.querySelectorAll('#bulkBmTagsList .tag-checkbox:checked')).map(cb => cb.value);
+    if (selectedTags.length > 0) {
+        bookmarks.forEach(bm => {
+            if (selectedBookmarkIds.has(bm.id)) {
+                if (!bm.tags.custom) bm.tags.custom = [];
+                bm.tags.custom = [...new Set([...bm.tags.custom, ...selectedTags])];
+            }
+        });
+        saveData();
+    }
+    selectedBookmarkIds.clear();
+    bulkTagModal.style.display = 'none';
+    renderBookmarks();
+    updateBulkActionBar();
+};
+
+document.getElementById('cancelBulkTagBtn').onclick = () => { bulkTagModal.style.display = 'none'; };
+
+// Bulk Delete
+document.getElementById('bulkDeleteBtn').onclick = async () => {
+    const isConfirmed = await customConfirm(`Delete ${selectedBookmarkIds.size} selected bookmarks?`);
+    if (isConfirmed) {
+        bookmarks = bookmarks.filter(bm => !selectedBookmarkIds.has(bm.id));
+        selectedBookmarkIds.clear();
+        saveData();
+        renderBookmarks();
+        updateBulkActionBar();
+    }
+};
+
+document.getElementById('bulkCancelBtn').onclick = () => {
+    selectedBookmarkIds.clear();
+    renderBookmarks();
+    updateBulkActionBar();
+};
 
 // ================= MAIN RENDER =================
 
 function renderBookmarks() {
     list.innerHTML = '';
     const term = searchInput.value.toLowerCase();
-
+    
     let filtered = bookmarks.filter(bm => {
         const customString = (bm.tags.custom || []).join(' ');
         const urlsString = (bm.urls || []).join(' ');
@@ -605,10 +676,18 @@ function renderBookmarks() {
         return 0; 
     });
 
+    currentlyVisibleIds = filtered.map(bm => bm.id);
+
+    const listControls = document.getElementById('listControls');
     if (filtered.length === 0) {
+        listControls.style.display = 'none';
         list.innerHTML = `<div style="text-align:center; padding:30px; color:#8b949e; font-size:13.5px;">No links found.</div>`;
         return;
     }
+
+    listControls.style.display = 'flex';
+    document.getElementById('visibleCount').innerText = `${filtered.length} entries`;
+    updateSelectAllState();
 
     filtered.forEach(bm => {
         const sortedCustomTags = (bm.tags.custom || []).sort((a, b) => {
@@ -618,9 +697,7 @@ function renderBookmarks() {
             const indexA = globalTagsData.findIndex(t => t.name === parentA);
             const indexB = globalTagsData.findIndex(t => t.name === parentB);
             
-            if (indexA !== indexB) {
-                return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
-            }
+            if (indexA !== indexB) return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
             if (a === parentA) return -1;
             if (b === parentB) return 1;
             return a.localeCompare(b);
@@ -628,7 +705,6 @@ function renderBookmarks() {
 
         const customTagsHTML = sortedCustomTags.map(tag => {
             const color = getTagColor(tag);
-            // Hide parent tag name if it's a subtag
             const displayText = tag.includes(' ➔ ') ? tag.split(' ➔ ')[1] : tag;
             return `<span class="tag custom" style="background: ${color}22; color: ${color}; border-color: ${color}44;">${displayText}</span>`;
         }).join('');
@@ -637,24 +713,32 @@ function renderBookmarks() {
         
         const urlsHTML = (bm.urls || []).map(url => `<a href="${url}" target="_blank" class="bookmark-link">${linkIcon} ${url}</a>`).join('');
 
+        const isChecked = selectedBookmarkIds.has(bm.id) ? 'checked' : '';
         const card = document.createElement('div');
         card.className = 'list-row';
         card.innerHTML = `
-            <div class="row-header">
-                <div style="overflow: hidden; width: 100%;">
-                    <div class="bookmark-title">${bm.title}</div>
-                    <div class="bookmark-link-group">
-                        ${urlsHTML}
+            <div class="row-content-wrapper">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" class="bm-checkbox" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked)">
+                </div>
+                <div class="row-main-content">
+                    <div class="row-header">
+                        <div style="overflow: hidden; width: 100%;">
+                            <div class="bookmark-title">${bm.title}</div>
+                            <div class="bookmark-link-group">
+                                ${urlsHTML}
+                            </div>
+                        </div>
+                        <div class="action-group">
+                            <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
+                            <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
+                        </div>
+                    </div>
+                    <div class="tag-container">
+                        ${sourceTagsHTML}
+                        ${customTagsHTML}
                     </div>
                 </div>
-                <div class="action-group">
-                    <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
-                    <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
-                </div>
-            </div>
-            <div class="tag-container">
-                ${sourceTagsHTML}
-                ${customTagsHTML}
             </div>
         `;
         list.appendChild(card);
@@ -665,7 +749,8 @@ window.deleteBookmark = async function(id) {
     const isConfirmed = await customConfirm('Remove this link from the list?');
     if(isConfirmed) {
         bookmarks = bookmarks.filter(b => b.id !== id);
-        saveData(); renderBookmarks();
+        selectedBookmarkIds.delete(id);
+        saveData(); renderBookmarks(); updateBulkActionBar();
     }
 };
 
