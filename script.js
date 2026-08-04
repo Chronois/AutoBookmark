@@ -6,7 +6,7 @@ const loading = document.getElementById('loadingText');
 // Mengambil daftar bookmark dari Local Storage browser
 let bookmarks = JSON.parse(localStorage.getItem('myBookmarks')) || [];
 
-// Fungsi untuk membersihkan judul
+// Fungsi untuk membersihkan judul yang didapat
 function cleanTitle(rawTitle, domain) {
     let cleaned = rawTitle;
     cleaned = cleaned.replace(/(free download|build\s*\d*)/gi, '');
@@ -21,6 +21,23 @@ function cleanTitle(rawTitle, domain) {
     return cleaned;
 }
 
+// Fungsi FALLBACK: Jika website memblokir proxy (seperti Cloudflare di SteamUnlocked)
+// Maka ekstrak judul langsung dari link URL-nya agar tetap tersimpan rapi.
+function getFallbackTitle(url) {
+    try {
+        const urlObj = new URL(url);
+        let path = urlObj.pathname;
+        let segments = path.split('/').filter(s => s.length > 0);
+        let lastSegment = segments.pop() || urlObj.hostname;
+        
+        // Ubah tanda hubung dan garis bawah menjadi spasi, lalu kapitalisasi
+        let title = lastSegment.replace(/[-_]/g, ' ');
+        return title.replace(/\b\w/g, l => l.toUpperCase());
+    } catch (e) {
+        return "Judul Tidak Diketahui";
+    }
+}
+
 // Fungsi untuk menampilkan daftar bookmark ke layar
 function renderBookmarks() {
     list.innerHTML = '';
@@ -28,7 +45,7 @@ function renderBookmarks() {
         const card = document.createElement('div');
         card.className = 'result-card';
         card.innerHTML = `
-            <h3 style="margin: 0 0 10px 0;">
+            <h3 style="margin: 0;">
                 <a href="${bm.original_url}" target="_blank" class="bookmark-title" title="Buka Link">${bm.title}</a>
             </h3>
             <a href="${bm.original_url}" target="_blank" class="bookmark-link">${bm.original_url}</a>
@@ -58,55 +75,65 @@ btn.addEventListener('click', async () => {
 
     loading.style.display = 'block';
 
+    let rawTitle = '';
+    
+    // 1. Dapatkan Source Tag
+    let sourceTag = 'Unknown';
     try {
-        // MENGGUNAKAN PUBLIC CORS PROXY (allorigins.win)
-        // Ini memungkinkan browser mengambil HTML dari website lain tanpa diblokir
+        const parsedUrl = new URL(url);
+        sourceTag = parsedUrl.hostname.replace('www.', ''); 
+    } catch(e) {
+        alert('URL tidak valid.');
+        loading.style.display = 'none';
+        return;
+    }
+
+    try {
+        // Coba fetch HTML menggunakan proxy
         const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
         const response = await fetch(proxyUrl);
         const data = await response.json();
         
-        // Ekstrak HTML dari response
-        const html = data.contents;
-
-        // Parsing HTML menggunakan DOMParser bawaan browser
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        
-        // Ambil Tag Asal
-        const parsedUrl = new URL(url);
-        const sourceTag = parsedUrl.hostname.replace('www.', ''); 
-
-        // Ambil dan Bersihkan Judul
-        const titleElement = doc.querySelector('title');
-        const rawTitle = titleElement ? titleElement.innerText.trim() : 'Judul tidak ditemukan';
-        const cleanTitleText = cleanTitle(rawTitle, sourceTag);
-
-        // Tentukan Tipe Tag
-        let typeTag = 'Lainnya'; 
-        const detectGameKeywords = ['game', 'steam', 'skidrow', 'lewdzone', 'repack'];
-        const urlString = url.toLowerCase();
-        if (detectGameKeywords.some(keyword => urlString.includes(keyword))) {
-            typeTag = 'Game';
+        if (data && data.contents) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data.contents, "text/html");
+            const titleElement = doc.querySelector('title');
+            if (titleElement) {
+                rawTitle = titleElement.innerText.trim();
+            }
         }
-
-        // Buat objek data baru
-        const newBookmark = {
-            original_url: url,
-            title: cleanTitleText,
-            tags: { source: sourceTag, type: typeTag }
-        };
-
-        // Simpan ke local storage dan perbarui tampilan
-        bookmarks.unshift(newBookmark);
-        localStorage.setItem('myBookmarks', JSON.stringify(bookmarks));
-        
-        loading.style.display = 'none';
-        renderBookmarks();
-        input.value = '';
-
     } catch (error) {
-        loading.style.display = 'none';
-        alert('Gagal mengambil data dari URL. Pastikan link valid.');
-        console.error(error);
+        console.warn("Proxy diblokir, beralih ke metode fallback.");
     }
+
+    // 2. Fallback System: 
+    // Jika title kosong ATAU terdeteksi blokir dari Cloudflare (Anti-Bot)
+    if (!rawTitle || rawTitle.includes('Just a moment') || rawTitle.includes('Cloudflare') || rawTitle.includes('Access denied')) {
+        rawTitle = getFallbackTitle(url);
+    }
+
+    // Bersihkan judul akhir
+    const cleanTitleText = cleanTitle(rawTitle, sourceTag);
+
+    // 3. Tentukan Tipe Tag
+    let typeTag = 'Lainnya'; 
+    const detectGameKeywords = ['game', 'steam', 'skidrow', 'lewdzone', 'repack'];
+    const urlString = url.toLowerCase();
+    if (detectGameKeywords.some(keyword => urlString.includes(keyword))) {
+        typeTag = 'Game';
+    }
+
+    // 4. Simpan Data Bookmark
+    const newBookmark = {
+        original_url: url,
+        title: cleanTitleText,
+        tags: { source: sourceTag, type: typeTag }
+    };
+
+    bookmarks.unshift(newBookmark);
+    localStorage.setItem('myBookmarks', JSON.stringify(bookmarks));
+    
+    loading.style.display = 'none';
+    renderBookmarks();
+    input.value = '';
 });
