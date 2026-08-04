@@ -14,7 +14,7 @@ let bookmarks = JSON.parse(localStorage.getItem('myBookmarks')) || [];
 bookmarks = bookmarks.map(bm => ({ ...bm, id: bm.id || Date.now() + Math.random() }));
 
 // Global Tags (Menyimpan daftar tag yang dibuat user)
-let globalTags = JSON.parse(localStorage.getItem('myTags')) || ['Bagus', 'Menarik', 'Ringan', 'End', 'Axed'];
+let globalTags = JSON.parse(localStorage.getItem('myTags')) || [];
 
 let pendingNewTags = []; // Menyimpan tag saat membuat link baru
 let editingBookmarkId = null; // Menyimpan ID link yang sedang diedit
