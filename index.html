@@ -5,28 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auto Bookmark Tagger</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Tambahan Google Fonts untuk tipografi yang lebih modern -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <div class="container">
-        <h1>🔖 Simpan Bookmark</h1>
+        <div class="header-container">
+            <h1>🔖 Bookmark</h1>
+            <!-- Kolom Filter / Pencarian -->
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Cari judul, source, atau tag...">
+        </div>
         
+        <!-- Input Group dibuat lebih padat sejajar -->
         <div class="input-group">
-            <input type="url" id="urlInput" placeholder="Masukkan link web di sini..." required>
-            <button id="submitBtn">Simpan Link</button>
+            <input type="url" id="urlInput" placeholder="Masukkan link web..." required>
+            <input type="text" id="customTagInput" placeholder="Custom tag (pisahkan koma)">
+            <button id="submitBtn">Simpan</button>
         </div>
         
         <div class="loading" id="loadingText">
-            <span class="spinner"></span> Sedang mengekstrak data dari link...
+            <span class="spinner"></span> Memproses data dengan cepat...
         </div>
 
-        <!-- Tempat list bookmark akan muncul -->
+        <!-- List Bookmark -->
         <div id="bookmarkList"></div>
     </div>
 
-    <!-- Menghubungkan ke file JavaScript eksternal -->
     <script src="script.js"></script>
 </body>
 </html>
