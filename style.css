@@ -328,9 +328,11 @@ body {
 }
 .subtag-item { 
     padding: 6px 8px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; 
-    cursor: default;
+    cursor: grab; user-select: none; transition: all 0.2s;
 }
-.subtag-item:active { cursor: default; }
+.subtag-item:active { cursor: grabbing; }
+.subtag-item.dragging-sub { opacity: 0.5; border: 1px dashed #58a6ff; }
+.subtag-item.drag-over-sub { border-top: 2px solid #58a6ff; }
 
 .drag-handle { color: #484f58; font-weight: bold; cursor: grab; display: flex; align-items: center; }
 .drag-handle svg { width: 16px; height: 16px; fill: currentColor; }
