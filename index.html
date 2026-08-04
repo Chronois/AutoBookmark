@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auto Bookmark Tagger</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Tambahan Google Fonts untuk tipografi yang lebih modern -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -16,7 +18,9 @@
             <button id="submitBtn">Simpan Link</button>
         </div>
         
-        <div class="loading" id="loadingText">Sedang mengekstrak data dari link...</div>
+        <div class="loading" id="loadingText">
+            <span class="spinner"></span> Sedang mengekstrak data dari link...
+        </div>
 
         <!-- Tempat list bookmark akan muncul -->
         <div id="bookmarkList"></div>
