@@ -9,10 +9,15 @@
 </head>
 <body>
 
-    <!-- Header Full Width -->
+    <!-- Header Full Width with Export/Import -->
     <header class="navbar">
         <div class="navbar-content">
             <h1 class="app-title">🔖 AutoBookmark</h1>
+            <div class="header-actions">
+                <button id="exportBtn" class="btn btn-secondary btn-sm">💾 Export Data</button>
+                <label for="importFile" class="btn btn-secondary btn-sm cursor-pointer">📂 Import Data</label>
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+            </div>
         </div>
     </header>
 
@@ -91,15 +96,24 @@
 
     <!-- Edit Bookmark Modal -->
     <div id="editBookmarkModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h3 id="editModalTitle">Edit Bookmark</h3>
             </div>
             <div class="modal-body">
                 <div id="editTitleGroup" class="filter-group">
-                    <label>Link Title</label>
+                    <label>Title (Not clickable)</label>
                     <input type="text" id="editBmTitle" class="input-field" placeholder="Enter title...">
                 </div>
+
+                <div id="editUrlGroup" class="filter-group">
+                    <label>Links (URLs)</label>
+                    <div id="editUrlList" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- URLs generated here -->
+                    </div>
+                    <button id="addNewUrlBtn" class="btn btn-outline" style="margin-top: 10px; width: 100%; height: 34px;">+ Add Link</button>
+                </div>
+
                 <div class="filter-tags-group">
                     <label>Select Tags</label>
                     <div id="editBmTagsList" class="checkbox-list edit-tags-box"></div>
@@ -128,11 +142,11 @@
     <!-- CUSTOM CONFIRM MODAL -->
     <div id="customConfirmModal" class="modal" style="z-index: 999;">
         <div class="modal-content custom-dialog">
-            <h3 class="dialog-title">Confirmation</h3>
+            <h3 class="dialog-title">Notification</h3>
             <p id="confirmMessage" class="dialog-msg"></p>
             <div class="modal-footer" style="margin-top: 15px;">
                 <button id="confirmCancel" class="btn btn-ghost">Cancel</button>
-                <button id="confirmOk" class="btn btn-primary">Yes, Proceed</button>
+                <button id="confirmOk" class="btn btn-primary">Yes</button>
             </div>
         </div>
     </div>
