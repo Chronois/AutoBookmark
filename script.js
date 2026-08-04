@@ -22,15 +22,32 @@ bookmarks = bookmarks.map(bm => {
     return { ...bm, id: bm.id || Date.now() + Math.random() };
 });
 
-let globalTags = JSON.parse(localStorage.getItem('myTags')) || ['Favorite', 'Read Later', 'Reference', 'Completed', 'Dropped'];
+// Global Tags now support Objects: { name: string, color: string }
+let globalTagsData = JSON.parse(localStorage.getItem('myTagsData')) || [
+    { name: 'Favorite', color: '#1f6feb' },
+    { name: 'Read Later', color: '#8957e5' },
+    { name: 'Reference', color: '#238636' },
+    { name: 'Completed', color: '#8b949e' },
+    { name: 'Dropped', color: '#da3633' }
+];
+
+// Migration legacy string tags to object tags if needed
+globalTagsData = globalTagsData.map(t => typeof t === 'string' ? { name: t, color: '#3b82f6' } : t);
+
 let pendingNewTags = []; 
 let editingBookmarkId = null; 
 
 function saveData() { localStorage.setItem('myBookmarks', JSON.stringify(bookmarks)); }
-function saveTags() { localStorage.setItem('myTags', JSON.stringify(globalTags)); }
+function saveTags() { localStorage.setItem('myTagsData', JSON.stringify(globalTagsData)); }
 
 function getHostname(urlStr) {
     try { return new URL(urlStr).hostname.replace('www.', ''); } catch(e) { return 'Unknown'; }
+}
+
+// Helper to find tag color
+function getTagColor(tagName) {
+    const found = globalTagsData.find(t => t.name === tagName);
+    return found ? found.color : '#3b82f6';
 }
 
 // ================= ICONS SVG =================
@@ -39,14 +56,16 @@ const trashIcon = `<svg viewBox="0 0 16 16"><path d="M11 1.75V3h2.25a.75.75 0 0 
 const linkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
 
 // ================= CUSTOM DIALOGS =================
-function customPrompt(message, defaultValue = '') {
+function customPrompt(message, defaultValue = '', titleText = 'Input Required') {
     return new Promise((resolve) => {
         const modal = document.getElementById('customPromptModal');
+        const titleEl = document.getElementById('promptTitleModal');
         const msgEl = document.getElementById('promptMessage');
         const inputEl = document.getElementById('promptInput');
         const btnOk = document.getElementById('promptOk');
         const btnCancel = document.getElementById('promptCancel');
 
+        titleEl.innerText = titleText;
         msgEl.innerText = message;
         inputEl.value = defaultValue;
         modal.style.display = 'flex';
@@ -80,7 +99,7 @@ function customConfirm(message, showCancel = true) {
 
 // ================= EXPORT / IMPORT =================
 document.getElementById('exportBtn').addEventListener('click', () => {
-    const dataObj = { bookmarks, globalTags };
+    const dataObj = { bookmarks, globalTagsData };
     const dataStr = JSON.stringify(dataObj, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -100,7 +119,11 @@ document.getElementById('importFile').addEventListener('change', (e) => {
     reader.onload = async (event) => {
         try {
             const parsed = JSON.parse(event.target.result);
-            if (parsed.globalTags) globalTags = parsed.globalTags;
+            if (parsed.globalTagsData) {
+                globalTagsData = parsed.globalTagsData.map(t => typeof t === 'string' ? { name: t, color: '#3b82f6' } : t);
+            } else if (parsed.globalTags) {
+                globalTagsData = parsed.globalTags.map(t => typeof t === 'string' ? { name: t, color: '#3b82f6' } : t);
+            }
             if (parsed.bookmarks) {
                 bookmarks = parsed.bookmarks.map(bm => {
                     if (bm.original_url && !bm.urls) {
@@ -120,7 +143,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
         }
     };
     reader.readAsText(file);
-    e.target.value = ''; // Reset input
+    e.target.value = ''; 
 });
 
 // ================= MANAGE GLOBAL TAGS =================
@@ -131,9 +154,10 @@ const globalTagsList = document.getElementById('globalTagsList');
 const addNewTagBtn = document.getElementById('addNewTagBtn');
 
 function renderManageTags() {
-    globalTagsList.innerHTML = globalTags.map((tag, idx) => `
+    globalTagsList.innerHTML = globalTagsData.map((tagObj, idx) => `
         <div class="tag-edit-item">
-            <span class="tag-name">${tag}</span>
+            <input type="color" class="tag-color-input" value="${tagObj.color}" onchange="changeTagColor(${idx}, this.value)" title="Change tag color">
+            <span class="tag-name">${tagObj.name}</span>
             <button class="btn-icon" onclick="editGlobalTag(${idx})" title="Edit tag">${editIcon}</button>
             <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})" title="Delete tag">${trashIcon}</button>
         </div>
@@ -143,23 +167,33 @@ function renderManageTags() {
 openManageTagsBtn.onclick = () => { renderManageTags(); manageTagsModal.style.display = 'flex'; }
 closeManageTagsBtn.onclick = () => manageTagsModal.style.display = 'none';
 
+window.changeTagColor = function(idx, newColor) {
+    globalTagsData[idx].color = newColor;
+    saveTags();
+    renderBookmarks();
+}
+
 addNewTagBtn.onclick = async () => {
-    const newTag = await customPrompt("Enter new tag name:");
-    if (newTag && newTag.trim() !== '' && !globalTags.includes(newTag.trim())) {
-        globalTags.push(newTag.trim());
-        saveTags(); renderManageTags();
+    const newTagName = await customPrompt("Enter new tag name:", "", "Add New Tag");
+    if (newTagName && newTagName.trim() !== '') {
+        const trimmed = newTagName.trim();
+        if (!globalTagsData.some(t => t.name === trimmed)) {
+            globalTagsData.push({ name: trimmed, color: '#3b82f6' });
+            saveTags(); renderManageTags();
+        }
     }
 }
 
 window.editGlobalTag = async function(idx) {
-    const oldTag = globalTags[idx];
-    const newTag = await customPrompt("Edit tag name:", oldTag);
-    if (newTag && newTag.trim() !== '' && newTag !== oldTag) {
-        globalTags[idx] = newTag.trim();
+    const oldObj = globalTagsData[idx];
+    const newName = await customPrompt("Edit tag name:", oldObj.name, "Edit Tag");
+    if (newName && newName.trim() !== '' && newName.trim() !== oldObj.name) {
+        const updatedName = newName.trim();
+        globalTagsData[idx].name = updatedName;
         bookmarks.forEach(bm => {
             if(bm.tags && bm.tags.custom) {
-                const tIdx = bm.tags.custom.indexOf(oldTag);
-                if(tIdx > -1) bm.tags.custom[tIdx] = newTag.trim();
+                const tIdx = bm.tags.custom.indexOf(oldObj.name);
+                if(tIdx > -1) bm.tags.custom[tIdx] = updatedName;
             }
         });
         saveData(); saveTags(); renderManageTags(); renderBookmarks();
@@ -167,10 +201,10 @@ window.editGlobalTag = async function(idx) {
 }
 
 window.deleteGlobalTag = async function(idx) {
-    const tagToDelete = globalTags[idx];
+    const tagToDelete = globalTagsData[idx].name;
     const isConfirmed = await customConfirm(`Delete tag "${tagToDelete}"?`);
     if (isConfirmed) {
-        globalTags.splice(idx, 1);
+        globalTagsData.splice(idx, 1);
         bookmarks.forEach(bm => {
             if(bm.tags && bm.tags.custom) {
                 bm.tags.custom = bm.tags.custom.filter(t => t !== tagToDelete);
@@ -194,10 +228,11 @@ const addNewUrlBtn = document.getElementById('addNewUrlBtn');
 const editModalTitle = document.getElementById('editModalTitle');
 
 function renderCheckboxList(selectedTags) {
-    editBmTagsList.innerHTML = globalTags.map(tag => `
+    editBmTagsList.innerHTML = globalTagsData.map(tagObj => `
         <label class="checkbox-item">
-            <input type="checkbox" value="${tag}" class="tag-checkbox" ${selectedTags.includes(tag) ? 'checked' : ''}>
-            ${tag}
+            <input type="checkbox" value="${tagObj.name}" class="tag-checkbox" ${selectedTags.includes(tagObj.name) ? 'checked' : ''}>
+            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
+            ${tagObj.name}
         </label>
     `).join('');
 }
@@ -286,10 +321,11 @@ function populateFilters() {
     filterSource.innerHTML = '<option value="all">All Sources</option>' + [...sources].map(s => `<option value="${s}">${s}</option>`).join('');
     filterSource.value = activeFilters.source;
 
-    filterTagsList.innerHTML = globalTags.map(tag => `
+    filterTagsList.innerHTML = globalTagsData.map(tagObj => `
         <label class="checkbox-item">
-            <input type="checkbox" value="${tag}" ${activeFilters.customTags.includes(tag) ? 'checked' : ''}>
-            ${tag}
+            <input type="checkbox" value="${tagObj.name}" ${activeFilters.customTags.includes(tagObj.name) ? 'checked' : ''}>
+            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
+            ${tagObj.name}
         </label>
     `).join('');
 }
@@ -346,7 +382,11 @@ function renderBookmarks() {
     }
 
     filtered.forEach(bm => {
-        const customTagsHTML = (bm.tags.custom || []).map(tag => `<span class="tag custom">${tag}</span>`).join('');
+        const customTagsHTML = (bm.tags.custom || []).map(tag => {
+            const color = getTagColor(tag);
+            return `<span class="tag custom" style="background: ${color}22; color: ${color}; border-color: ${color}44;">${tag}</span>`;
+        }).join('');
+        
         const sourceTagsHTML = (Array.isArray(bm.tags.source) ? bm.tags.source : [bm.tags.source]).map(src => `<span class="tag source">${src}</span>`).join('');
         
         const urlsHTML = (bm.urls || []).map(url => `<a href="${url}" target="_blank" class="bookmark-link">${linkIcon} ${url}</a>`).join('');
