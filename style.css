@@ -75,7 +75,7 @@ body {
 .main-container { 
     width: 100%; 
     max-width: 1200px; 
-    padding: 30px 20px 80px 20px; /* added bottom padding for bulk bar */
+    padding: 30px 20px 80px 20px;
 }
 
 /* ================= CONTROLS AREA ================= */
@@ -178,8 +178,44 @@ body {
 .btn-ghost { background: transparent; color: #8b949e; border: none; }
 .btn-ghost:hover { color: #c9d1d9; background: rgba(177, 186, 196, 0.12); }
 
-/* ================= BOOKMARK LIST ================= */
+/* ================= CUSTOM CHECKBOX ================= */
+.custom-cb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background-color: #0d1117;
+    border: 1.5px solid #30363d;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    margin: 0;
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
 
+.custom-cb:hover { border-color: #8b949e; }
+
+.custom-cb:checked {
+    background-color: #21262d;
+    border-color: #8b949e;
+}
+
+.custom-cb:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid #c9d1d9;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* ================= BOOKMARK LIST ================= */
 .list-controls {
     display: flex;
     justify-content: space-between;
@@ -197,14 +233,6 @@ body {
     cursor: pointer;
 }
 
-.bm-checkbox {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: #1f6feb;
-    margin: 0;
-}
-
 .bookmark-list-container {
     width: 100%;
     display: flex;
@@ -217,24 +245,19 @@ body {
     background: #161b22;
     border: 1px solid #30363d;
     border-radius: 8px;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
 }
 
 .list-row:hover { border-color: #8b949e; }
 
-.row-content-wrapper {
-    display: flex;
-    gap: 15px;
-    width: 100%;
+/* Highlight row when selected */
+.list-row.selected {
+    border-color: #58a6ff;
+    background-color: rgba(88, 166, 255, 0.05);
 }
 
-.checkbox-wrapper {
-    padding-top: 2px;
-}
-
-.row-main-content {
-    flex: 1;
-    min-width: 0; /* Prevents flex blowout with long unbroken URLs */
+.list-row.selected .action-group {
+    opacity: 1; /* keep actions visible when selected */
 }
 
 .row-header {
@@ -289,7 +312,6 @@ body {
 .btn-icon:hover { background: #30363d; color: #c9d1d9; }
 .btn-icon.delete:hover { background: rgba(248, 81, 73, 0.1); color: #f85149; }
 .btn-icon svg { width: 16px; height: 16px; fill: currentColor; }
-
 
 /* ================= BULK ACTION BAR ================= */
 .bulk-action-bar {
@@ -362,7 +384,6 @@ body {
     color: #c9d1d9; cursor: pointer; padding: 6px 12px; border-radius: 6px;
 }
 .checkbox-item:hover { background: #21262d; }
-.checkbox-item input { width: 14px; height: 14px; cursor: pointer; accent-color: #238636; margin: 0;}
 .sub-checkbox { margin-left: 18px; }
 
 /* Scrollbar */
