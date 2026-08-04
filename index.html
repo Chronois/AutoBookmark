@@ -14,13 +14,14 @@
             <h1>🔖 AutoBookmark</h1>
             <div class="search-wrapper">
                 <input type="text" id="searchInput" class="search-input" placeholder="🔍 Cari link, tag, sumber...">
+                <button id="openManageTagsBtn" class="filter-btn manage-btn">🏷️ Tags</button>
                 <button id="openFilterBtn" class="filter-btn">⚙️ Filter</button>
             </div>
         </div>
         
         <div class="input-group">
             <input type="url" id="urlInput" placeholder="Masukkan link web di sini..." required>
-            <input type="text" id="customTagInput" placeholder="Custom tag (pisahkan koma)">
+            <button id="openSelectTagsBtn" class="select-tags-btn">🏷️ Set Tag (0)</button>
             <button id="submitBtn">Simpan</button>
         </div>
         
@@ -31,14 +32,13 @@
         <div id="bookmarkList"></div>
     </div>
 
-    <!-- Modal Filter -->
+    <!-- 1. Modal Filter -->
     <div id="filterModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <button id="resetFilterBtn" class="reset-btn">Reset</button>
                 <button id="applyFilterBtn" class="apply-btn">Filter</button>
             </div>
-            
             <div class="modal-body">
                 <div class="filter-group">
                     <label>Order</label>
@@ -49,23 +49,54 @@
                         <option value="za">Z-A</option>
                     </select>
                 </div>
-                
                 <div class="filter-group">
                     <label>Type</label>
                     <select id="filterType"><option value="all">All</option></select>
                 </div>
-                
                 <div class="filter-group">
                     <label>Source</label>
                     <select id="filterSource"><option value="all">All</option></select>
                 </div>
-                
                 <div class="filter-group">
-                    <label class="genre-label">Custom Tags (Genre) <span>▼</span></label>
-                    <div id="filterTagsList" class="checkbox-list">
-                        <!-- Checkbox generate otomatis via JS -->
-                    </div>
+                    <label class="genre-label">Custom Tags <span>▼</span></label>
+                    <div id="filterTagsList" class="checkbox-list"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Modal Manage Global Tags (Sesuai Gambar 2) -->
+    <div id="manageTagsModal" class="modal">
+        <div class="modal-content manage-tags-content">
+            <div class="manage-header">
+                <button class="back-icon" id="closeManageTagsBtn">←</button>
+                <h3>Edit categories</h3>
+            </div>
+            <div class="tags-list-container" id="globalTagsList">
+                <!-- Terisi otomatis oleh JS -->
+            </div>
+            <button id="addNewTagBtn" class="add-tag-btn">+ Add</button>
+        </div>
+    </div>
+
+    <!-- 3. Modal Edit Bookmark & Set New Bookmark Tags -->
+    <div id="editBookmarkModal" class="modal">
+        <div class="modal-content">
+            <h3 id="editModalTitle" style="margin-top:0; margin-bottom:15px; font-size:1.2rem;">Edit Bookmark</h3>
+            
+            <div id="editTitleGroup" style="margin-bottom:15px;">
+                <label style="font-size:12px; color:#9ca3af; display:block; margin-bottom:5px;">Judul Tautan</label>
+                <input type="text" id="editBmTitle" style="width:100%;" placeholder="Judul...">
+            </div>
+            
+            <label style="font-size:12px; color:#9ca3af; display:block; margin-bottom:5px;">Pilih Custom Tags</label>
+            <div class="checkbox-list" id="editBmTagsList" style="max-height: 200px; border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius:8px;">
+                <!-- Terisi otomatis oleh JS -->
+            </div>
+            
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button id="cancelEditBtn" class="reset-btn" style="color:#f87171;">Batal</button>
+                <button id="saveEditBmBtn" class="apply-btn">Simpan</button>
             </div>
         </div>
     </div>
