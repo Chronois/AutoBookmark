@@ -1,192 +1,131 @@
-/* Reset & Body Styles */
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body { 
     font-family: 'Poppins', sans-serif; 
-    /* Background modern dark mode dengan gradient */
     background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
     background-attachment: fixed;
     color: #e2e8f0;
     margin: 0; 
-    padding: 40px 20px; 
+    padding: 20px 10px; /* Padding luar dikurangi agar lebih luas */
     display: flex; 
     flex-direction: column; 
     align-items: center; 
     min-height: 100vh;
 }
 
-/* Container Styles (Glassmorphism) */
+/* Container lebih lebar dan padding dikurangi agar compact */
 .container { 
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 40px; 
-    border-radius: 20px; 
+    padding: 20px; 
+    border-radius: 12px; 
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     width: 100%; 
-    max-width: 700px; 
+    max-width: 900px; 
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 15px;
 }
 
 h1 { 
-    margin-top: 0; 
+    margin: 0; 
     color: #ffffff; 
-    text-align: center; 
     font-weight: 700;
-    margin-bottom: 30px;
-    letter-spacing: 1px;
+    font-size: 1.5rem;
+    white-space: nowrap;
 }
 
-/* Input & Button Styles */
-.input-group { 
-    display: flex; 
-    gap: 15px; 
-    margin-bottom: 30px; 
-}
-
-input[type="url"] { 
-    flex: 1; 
-    padding: 15px 20px; 
+/* Input Styles */
+.search-input, input[type="url"], input[type="text"] {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.2); 
-    border-radius: 10px; 
-    font-size: 16px; 
+    border-radius: 8px; 
+    font-size: 14px; 
     color: #fff;
     font-family: 'Poppins', sans-serif;
-    transition: border-color 0.3s;
+    padding: 10px 15px;
+    transition: border-color 0.2s;
 }
 
-input[type="url"]::placeholder {
-    color: #94a3b8;
-}
+.search-input { width: 100%; max-width: 350px; }
 
-input[type="url"]:focus {
-    outline: none;
-    border-color: #3b82f6;
-    background: rgba(0, 0, 0, 0.4);
+input:focus { outline: none; border-color: #3b82f6; background: rgba(0, 0, 0, 0.4); }
+input::placeholder { color: #94a3b8; }
+
+/* Grid Layout untuk menyatukan URL, Tag, dan Tombol tanpa ruang kosong */
+.input-group { 
+    display: grid; 
+    grid-template-columns: 2fr 1fr auto; 
+    gap: 10px; 
+    margin-bottom: 20px; 
 }
 
 button { 
-    padding: 15px 25px; 
+    padding: 10px 20px; 
     background: linear-gradient(135deg, #3b82f6, #2563eb); 
     color: white; 
     border: none; 
-    border-radius: 10px; 
+    border-radius: 8px; 
     cursor: pointer; 
-    font-size: 16px; 
+    font-size: 14px; 
     font-weight: 600; 
     font-family: 'Poppins', sans-serif;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
 }
+button:hover { filter: brightness(1.1); }
+button:active { transform: scale(0.98); }
 
-button:hover { 
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
-}
-
-button:active {
-    transform: translateY(1px);
-}
-
-/* Result Card Styles (List Bookmark) */
+/* Result Card - Padding dan margin ditipiskan */
 .result-card { 
     background: rgba(255, 255, 255, 0.08); 
-    border-left: 5px solid #3b82f6; 
-    padding: 20px; 
-    margin-bottom: 20px; 
-    border-radius: 12px; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease, background 0.3s ease;
+    border-left: 4px solid #3b82f6; 
+    padding: 12px 15px; 
+    margin-bottom: 10px; 
+    border-radius: 8px; 
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
+.result-card:hover { background: rgba(255, 255, 255, 0.12); }
 
-.result-card:hover { 
-    transform: translateX(8px); 
-    background: rgba(255, 255, 255, 0.12);
-}
+.bookmark-title { color: #ffffff; text-decoration: none; font-size: 1.1rem; font-weight: 600; }
+.bookmark-title:hover { color: #60a5fa; }
+.bookmark-link { color: #94a3b8; font-size: 12px; text-decoration: none; word-break: break-all; }
+.bookmark-link:hover { color: #60a5fa; text-decoration: underline; }
 
-/* Links */
-.bookmark-title { 
-    color: #ffffff; 
-    text-decoration: none; 
-    font-size: 1.2rem;
-    font-weight: 600;
-}
-.bookmark-title:hover { 
-    color: #60a5fa; 
-}
-
-.bookmark-link { 
-    color: #94a3b8; 
-    font-size: 14px; 
-    text-decoration: none; 
-    word-break: break-all; 
-    display: block; 
-    margin-top: 5px;
-    margin-bottom: 15px; 
-}
-.bookmark-link:hover { 
-    color: #60a5fa; 
-    text-decoration: underline; 
-}
-
-/* Tags & Action Container */
-.tag-container { 
-    display: flex; 
-    align-items: center; 
-    flex-wrap: wrap; 
-    gap: 12px; 
-}
-
-.tag { 
-    padding: 6px 14px; 
-    border-radius: 20px; 
-    font-size: 13px; 
-    font-weight: 600; 
-    letter-spacing: 0.5px;
-}
-
-.tag.source { 
-    background: rgba(34, 197, 94, 0.2); 
-    color: #4ade80; 
-    border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
-.tag.type { 
-    background: rgba(168, 85, 247, 0.2); 
-    color: #c084fc; 
-    border: 1px solid rgba(168, 85, 247, 0.3);
-}
+/* Tags Container diperkecil */
+.tag-container { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px;}
+.tag { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.tag.source { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+.tag.type { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+.tag.custom { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
 
 /* Delete Button */
 .delete-btn { 
     margin-left: auto; 
     background: rgba(239, 68, 68, 0.2); 
-    padding: 8px 16px; 
-    font-size: 13px; 
+    padding: 6px 12px; 
+    font-size: 11px; 
     color: #f87171; 
     border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 8px; 
+    border-radius: 6px; 
     cursor: pointer; 
     font-weight: 600;
-    box-shadow: none;
-    transition: all 0.2s ease;
 }
+.delete-btn:hover { background: #ef4444; color: white; }
 
-.delete-btn:hover { 
-    background: #ef4444; 
-    color: white;
-    transform: none;
-    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-}
+.loading { display: none; text-align: center; color: #94a3b8; font-style: italic; font-size: 13px; margin-bottom: 15px; }
 
-/* Loading indicator */
-.loading { 
-    display: none; 
-    text-align: center; 
-    color: #94a3b8; 
-    font-style: italic; 
-    margin-bottom: 25px; 
+/* Responsive adjustments */
+@media (max-width: 650px) {
+    .input-group { grid-template-columns: 1fr; }
+    .header-container { flex-direction: column; align-items: stretch; }
+    .search-input { max-width: 100%; }
 }
