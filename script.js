@@ -1,6 +1,7 @@
 const btn = document.getElementById('submitBtn');
 const input = document.getElementById('urlInput');
 const searchInput = document.getElementById('searchInput');
+const clearSearchBtn = document.getElementById('clearSearchBtn');
 const list = document.getElementById('bookmarkList');
 const loading = document.getElementById('loadingText');
 
@@ -23,14 +24,19 @@ bookmarks = bookmarks.map(bm => {
 });
 
 let globalTagsData = JSON.parse(localStorage.getItem('myTagsData')) || [
-    { name: 'Favorite', color: '#1f6feb' },
-    { name: 'Read Later', color: '#8957e5' },
-    { name: 'Reference', color: '#238636' },
-    { name: 'Completed', color: '#8b949e' },
-    { name: 'Dropped', color: '#da3633' }
+    { name: 'Favorite', color: '#1f6feb', subtags: [] },
+    { name: 'Read Later', color: '#8957e5', subtags: [] },
+    { name: 'Reference', color: '#238636', subtags: [] },
+    { name: 'Completed', color: '#8b949e', subtags: [] },
+    { name: 'Dropped', color: '#da3633', subtags: [] }
 ];
 
-globalTagsData = globalTagsData.map(t => typeof t === 'string' ? { name: t, color: '#3b82f6' } : t);
+// Migration for adding subtags array to old tags
+globalTagsData = globalTagsData.map(t => {
+    if (typeof t === 'string') return { name: t, color: '#3b82f6', subtags: [] };
+    if (!t.subtags) t.subtags = [];
+    return t;
+});
 
 let pendingNewTags = []; 
 let editingBookmarkId = null; 
@@ -52,15 +58,30 @@ function getRandomColor() {
 }
 
 function getTagColor(tagName) {
-    const found = globalTagsData.find(t => t.name === tagName);
+    const parentName = tagName.includes(' ➔ ') ? tagName.split(' ➔ ')[0] : tagName;
+    const found = globalTagsData.find(t => t.name === parentName);
     return found ? found.color : '#3b82f6';
 }
+
+// ================= SEARCH BAR CLEAR BUTTON =================
+searchInput.addEventListener('input', () => {
+    clearSearchBtn.style.display = searchInput.value.length > 0 ? 'flex' : 'none';
+    renderBookmarks();
+});
+
+clearSearchBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    clearSearchBtn.style.display = 'none';
+    renderBookmarks();
+});
+
 
 // ================= ICONS SVG =================
 const editIcon = `<svg viewBox="0 0 16 16"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81l-7.246 7.246a.25.25 0 0 0-.06.1l-.621 2.172 2.172-.62a.25.25 0 0 0 .1-.06l7.094-7.093Z"></path></svg>`;
 const trashIcon = `<svg viewBox="0 0 16 16"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"></path></svg>`;
 const linkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
 const dragIcon = `<svg viewBox="0 0 24 24"><path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm10-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>`;
+const addSubIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
 
 // ================= CUSTOM DIALOGS =================
 function customPrompt(message, defaultValue = '', titleText = 'Input Required') {
@@ -127,9 +148,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
         try {
             const parsed = JSON.parse(event.target.result);
             if (parsed.globalTagsData) {
-                globalTagsData = parsed.globalTagsData.map(t => typeof t === 'string' ? { name: t, color: getRandomColor() } : t);
-            } else if (parsed.globalTags) {
-                globalTagsData = parsed.globalTags.map(t => typeof t === 'string' ? { name: t, color: getRandomColor() } : t);
+                globalTagsData = parsed.globalTagsData.map(t => typeof t === 'string' ? { name: t, color: getRandomColor(), subtags: [] } : t);
             }
             if (parsed.bookmarks) {
                 bookmarks = parsed.bookmarks.map(bm => {
@@ -164,12 +183,26 @@ let draggedIndex = null;
 
 function renderManageTags() {
     globalTagsList.innerHTML = globalTagsData.map((tagObj, idx) => `
-        <div class="tag-edit-item" draggable="true" data-index="${idx}">
-            <span class="drag-handle" title="Drag to reorder">${dragIcon}</span>
-            <input type="color" class="tag-color-input" value="${tagObj.color}" onchange="changeTagColor(${idx}, this.value)" title="Change tag color">
-            <span class="tag-name">${tagObj.name}</span>
-            <button class="btn-icon" onclick="editGlobalTag(${idx})" title="Edit tag">${editIcon}</button>
-            <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})" title="Delete tag">${trashIcon}</button>
+        <div class="tag-group-container" draggable="true" data-index="${idx}">
+            <div class="tag-edit-item">
+                <span class="drag-handle" title="Drag to reorder">${dragIcon}</span>
+                <input type="color" class="tag-color-input" value="${tagObj.color}" onchange="changeTagColor(${idx}, this.value)" title="Change tag color">
+                <span class="tag-name">${tagObj.name}</span>
+                <button class="btn-icon" onclick="addSubtag(${idx})" title="Add subtag">${addSubIcon}</button>
+                <button class="btn-icon" onclick="editGlobalTag(${idx})" title="Edit tag">${editIcon}</button>
+                <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})" title="Delete tag">${trashIcon}</button>
+            </div>
+            ${tagObj.subtags && tagObj.subtags.length > 0 ? `
+            <div class="subtags-list">
+                ${tagObj.subtags.map((sub, sIdx) => `
+                    <div class="tag-edit-item subtag-item">
+                        <span class="tag-name">↳ ${sub}</span>
+                        <button class="btn-icon" onclick="editSubtag(${idx}, ${sIdx})" title="Edit subtag">${editIcon}</button>
+                        <button class="btn-icon delete" onclick="deleteSubtag(${idx}, ${sIdx})" title="Delete subtag">${trashIcon}</button>
+                    </div>
+                `).join('')}
+            </div>
+            ` : ''}
         </div>
     `).join('');
 
@@ -177,7 +210,7 @@ function renderManageTags() {
 }
 
 function initDragAndDrop() {
-    const items = globalTagsList.querySelectorAll('.tag-edit-item');
+    const items = globalTagsList.querySelectorAll('.tag-group-container');
     items.forEach(item => {
         item.addEventListener('dragstart', (e) => {
             draggedIndex = parseInt(item.getAttribute('data-index'));
@@ -191,7 +224,7 @@ function initDragAndDrop() {
 
         item.addEventListener('dragover', (e) => {
             e.preventDefault();
-            const targetItem = e.target.closest('.tag-edit-item');
+            const targetItem = e.target.closest('.tag-group-container');
             if (targetItem && targetItem !== item) {
                 items.forEach(i => i.classList.remove('drag-over'));
                 targetItem.classList.add('drag-over');
@@ -200,7 +233,7 @@ function initDragAndDrop() {
 
         item.addEventListener('drop', (e) => {
             e.preventDefault();
-            const targetItem = e.target.closest('.tag-edit-item');
+            const targetItem = e.target.closest('.tag-group-container');
             if (!targetItem) return;
             const targetIndex = parseInt(targetItem.getAttribute('data-index'));
 
@@ -230,7 +263,7 @@ addNewTagBtn.onclick = async () => {
         const trimmed = newTagName.trim();
         if (!globalTagsData.some(t => t.name === trimmed)) {
             const randomColor = getRandomColor();
-            globalTagsData.push({ name: trimmed, color: randomColor });
+            globalTagsData.push({ name: trimmed, color: randomColor, subtags: [] });
             saveTags(); renderManageTags();
         }
     }
@@ -244,8 +277,16 @@ window.editGlobalTag = async function(idx) {
         globalTagsData[idx].name = updatedName;
         bookmarks.forEach(bm => {
             if(bm.tags && bm.tags.custom) {
-                const tIdx = bm.tags.custom.indexOf(oldObj.name);
+                let tIdx = bm.tags.custom.indexOf(oldObj.name);
                 if(tIdx > -1) bm.tags.custom[tIdx] = updatedName;
+                
+                // Update parent name in subtags
+                bm.tags.custom = bm.tags.custom.map(t => {
+                    if (t.startsWith(`${oldObj.name} ➔ `)) {
+                        return t.replace(`${oldObj.name} ➔ `, `${updatedName} ➔ `);
+                    }
+                    return t;
+                });
             }
         });
         saveData(); saveTags(); renderManageTags(); renderBookmarks();
@@ -254,12 +295,70 @@ window.editGlobalTag = async function(idx) {
 
 window.deleteGlobalTag = async function(idx) {
     const tagToDelete = globalTagsData[idx].name;
-    const isConfirmed = await customConfirm(`Delete tag "${tagToDelete}"?`);
+    const isConfirmed = await customConfirm(`Delete tag "${tagToDelete}" and all its subtags?`);
     if (isConfirmed) {
         globalTagsData.splice(idx, 1);
         bookmarks.forEach(bm => {
             if(bm.tags && bm.tags.custom) {
-                bm.tags.custom = bm.tags.custom.filter(t => t !== tagToDelete);
+                bm.tags.custom = bm.tags.custom.filter(t => t !== tagToDelete && !t.startsWith(`${tagToDelete} ➔ `));
+            }
+        });
+        saveData(); saveTags(); renderManageTags(); renderBookmarks();
+    }
+}
+
+// SUBTAG FUNCTIONS
+window.addSubtag = async function(idx) {
+    const parentName = globalTagsData[idx].name;
+    const newSub = await customPrompt(`Add subtag to "${parentName}":`, "", "Add Subtag");
+    if (newSub && newSub.trim() !== '') {
+        const trimmed = newSub.trim();
+        if (!globalTagsData[idx].subtags.includes(trimmed)) {
+            globalTagsData[idx].subtags.push(trimmed);
+            saveTags(); renderManageTags();
+        } else {
+            await customConfirm("Subtag already exists!", false);
+        }
+    }
+}
+
+window.editSubtag = async function(pIdx, sIdx) {
+    const oldSub = globalTagsData[pIdx].subtags[sIdx];
+    const parentName = globalTagsData[pIdx].name;
+    const newSub = await customPrompt(`Edit subtag:`, oldSub, "Edit Subtag");
+    
+    if (newSub && newSub.trim() !== '' && newSub.trim() !== oldSub) {
+        const updatedSub = newSub.trim();
+        if (globalTagsData[pIdx].subtags.includes(updatedSub)) {
+            await customConfirm("Subtag already exists!", false);
+            return;
+        }
+
+        globalTagsData[pIdx].subtags[sIdx] = updatedSub;
+        const oldFullTag = `${parentName} ➔ ${oldSub}`;
+        const newFullTag = `${parentName} ➔ ${updatedSub}`;
+        
+        bookmarks.forEach(bm => {
+            if (bm.tags && bm.tags.custom) {
+                const tIdx = bm.tags.custom.indexOf(oldFullTag);
+                if (tIdx > -1) bm.tags.custom[tIdx] = newFullTag;
+            }
+        });
+        saveData(); saveTags(); renderManageTags(); renderBookmarks();
+    }
+}
+
+window.deleteSubtag = async function(pIdx, sIdx) {
+    const subToDelete = globalTagsData[pIdx].subtags[sIdx];
+    const parentName = globalTagsData[pIdx].name;
+    const isConfirmed = await customConfirm(`Delete subtag "${subToDelete}"?`);
+    
+    if (isConfirmed) {
+        globalTagsData[pIdx].subtags.splice(sIdx, 1);
+        const fullTagToDelete = `${parentName} ➔ ${subToDelete}`;
+        bookmarks.forEach(bm => {
+            if (bm.tags && bm.tags.custom) {
+                bm.tags.custom = bm.tags.custom.filter(t => t !== fullTagToDelete);
             }
         });
         saveData(); saveTags(); renderManageTags(); renderBookmarks();
@@ -286,6 +385,16 @@ function renderCheckboxList(selectedTags) {
             <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
             ${tagObj.name}
         </label>
+        ${(tagObj.subtags || []).map(sub => {
+            const fullVal = `${tagObj.name} ➔ ${sub}`;
+            return `
+            <label class="checkbox-item sub-checkbox">
+                <input type="checkbox" value="${fullVal}" class="tag-checkbox" ${selectedTags.includes(fullVal) ? 'checked' : ''}>
+                <span style="display:inline-block; width:10px; height:10px; border-radius:50%; border: 2px solid ${tagObj.color}; margin-right:6px;"></span>
+                ${sub}
+            </label>
+            `;
+        }).join('')}
     `).join('');
 }
 
@@ -379,6 +488,16 @@ function populateFilters() {
             <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
             ${tagObj.name}
         </label>
+        ${(tagObj.subtags || []).map(sub => {
+            const fullVal = `${tagObj.name} ➔ ${sub}`;
+            return `
+            <label class="checkbox-item sub-checkbox">
+                <input type="checkbox" value="${fullVal}" ${activeFilters.customTags.includes(fullVal) ? 'checked' : ''}>
+                <span style="display:inline-block; width:10px; height:10px; border-radius:50%; border: 2px solid ${tagObj.color}; margin-right:6px;"></span>
+                ${sub}
+            </label>
+            `;
+        }).join('')}
     `).join('');
 }
 
@@ -401,8 +520,6 @@ window.onclick = (e) => {
 }
 
 // ================= MAIN RENDER =================
-
-searchInput.addEventListener('input', renderBookmarks);
 
 function renderBookmarks() {
     list.innerHTML = '';
@@ -435,9 +552,18 @@ function renderBookmarks() {
 
     filtered.forEach(bm => {
         const sortedCustomTags = (bm.tags.custom || []).sort((a, b) => {
-            const indexA = globalTagsData.findIndex(t => t.name === a);
-            const indexB = globalTagsData.findIndex(t => t.name === b);
-            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+            const getParent = t => t.includes(' ➔ ') ? t.split(' ➔ ')[0] : t;
+            const parentA = getParent(a);
+            const parentB = getParent(b);
+            const indexA = globalTagsData.findIndex(t => t.name === parentA);
+            const indexB = globalTagsData.findIndex(t => t.name === parentB);
+            
+            if (indexA !== indexB) {
+                return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+            }
+            if (a === parentA) return -1;
+            if (b === parentB) return 1;
+            return a.localeCompare(b);
         });
 
         const customTagsHTML = sortedCustomTags.map(tag => {
@@ -534,7 +660,6 @@ btn.addEventListener('click', async () => {
 
     saveData();
     loading.style.display = 'none';
-    input.value = ''; searchInput.value = '';
-    // Perbaikan: pendingNewTags TIDAK DIHAPUS agar pilihan tag tetap sama saat menambah link berikutnya
+    input.value = ''; searchInput.value = ''; clearSearchBtn.style.display = 'none';
     renderBookmarks();
 });
