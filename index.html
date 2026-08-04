@@ -3,32 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Bookmark Tagger</title>
+    <title>AutoBookmark</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <div class="container">
         <div class="header-container">
-            <h1>🔖 Bookmark</h1>
-            <!-- Kolom Filter / Pencarian -->
-            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Cari judul, source, atau tag...">
+            <h1>🔖 AutoBookmark</h1>
+            <div class="search-wrapper">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Cari link, tag, sumber...">
+                <button id="openFilterBtn" class="filter-btn">⚙️ Filter</button>
+            </div>
         </div>
         
-        <!-- Input Group dibuat lebih padat sejajar -->
         <div class="input-group">
-            <input type="url" id="urlInput" placeholder="Masukkan link web..." required>
+            <input type="url" id="urlInput" placeholder="Masukkan link web di sini..." required>
             <input type="text" id="customTagInput" placeholder="Custom tag (pisahkan koma)">
             <button id="submitBtn">Simpan</button>
         </div>
         
         <div class="loading" id="loadingText">
-            <span class="spinner"></span> Memproses data dengan cepat...
+            <span class="spinner"></span> Mengekstrak data...
         </div>
 
-        <!-- List Bookmark -->
         <div id="bookmarkList"></div>
+    </div>
+
+    <!-- Modal Filter -->
+    <div id="filterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button id="resetFilterBtn" class="reset-btn">Reset</button>
+                <button id="applyFilterBtn" class="apply-btn">Filter</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="filter-group">
+                    <label>Order</label>
+                    <select id="filterOrder">
+                        <option value="newest">Default (Terbaru)</option>
+                        <option value="oldest">Terlama</option>
+                        <option value="az">A-Z</option>
+                        <option value="za">Z-A</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Type</label>
+                    <select id="filterType"><option value="all">All</option></select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Source</label>
+                    <select id="filterSource"><option value="all">All</option></select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="genre-label">Custom Tags (Genre) <span>▼</span></label>
+                    <div id="filterTagsList" class="checkbox-list">
+                        <!-- Checkbox generate otomatis via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
