@@ -29,6 +29,7 @@ body {
     max-width: 1200px;
     display: flex;
     align-items: center;
+    justify-content: space-between; /* To separate title and export/import buttons */
 }
 
 .app-title { 
@@ -36,6 +37,11 @@ body {
     font-weight: 700; 
     font-size: 1.5rem; 
     letter-spacing: -0.5px; 
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
 }
 
 /* ================= MAIN LAYOUT ================= */
@@ -97,8 +103,16 @@ body {
     transition: 0.2s;
     font-family: inherit;
     white-space: nowrap;
-    width: auto; /* Default auto for modals */
+    width: auto; 
 }
+
+/* Small Buttons (For Header) */
+.btn-sm {
+    height: 32px;
+    font-size: 12px;
+    padding: 0 12px;
+}
+.cursor-pointer { cursor: pointer; }
 
 /* Force 100% width ONLY for grid controls */
 .control-grid .btn { width: 100%; padding: 0; } 
@@ -135,7 +149,7 @@ body {
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     transition: border-color 0.2s;
 }
 
@@ -148,27 +162,33 @@ body {
     gap: 15px;
 }
 
+/* Title is no longer a link */
 .bookmark-title { 
-    color: #58a6ff; 
-    text-decoration: none; 
+    color: #f0f6fc; 
     font-size: 15px; 
     font-weight: 600; 
     line-height: 1.4; 
+    margin-bottom: 4px;
 }
-.bookmark-title:hover { text-decoration: underline; }
+
+.bookmark-link-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 6px;
+}
 
 .bookmark-link { 
-    color: #8b949e; 
-    font-size: 12px; 
+    color: #58a6ff; 
+    font-size: 12.5px; 
     text-decoration: none; 
     word-break: break-all;
-    display: block;
-    margin-top: 4px;
+    display: inline-block;
 }
-.bookmark-link:hover { color: #c9d1d9; }
+.bookmark-link:hover { text-decoration: underline; color: #79c0ff; }
 
 /* Tags */
-.tag-container { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.tag-container { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px;}
 .tag { padding: 4px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 500; border: 1px solid transparent; }
 .tag.source { background: rgba(139, 148, 158, 0.15); color: #8b949e; border-color: rgba(139, 148, 158, 0.2); }
 .tag.custom { background: rgba(88, 166, 255, 0.1); color: #58a6ff; border-color: rgba(88, 166, 255, 0.3); }
@@ -213,7 +233,6 @@ body {
 
 .modal-body { padding: 24px; }
 
-/* Modal Footer Fix */
 .modal-footer {
     display: flex; justify-content: flex-end; align-items: center; gap: 10px;
     padding: 16px 24px; border-top: 1px solid #30363d;
@@ -260,4 +279,5 @@ body {
 /* Mobile Responsive */
 @media (max-width: 650px) {
     .control-grid { grid-template-columns: 1fr; }
+    .header-actions { flex-direction: column; align-items: flex-end; }
 }
