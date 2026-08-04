@@ -12,25 +12,60 @@ const editBookmarkModal = document.getElementById('editBookmarkModal');
 // Data
 let bookmarks = JSON.parse(localStorage.getItem('myBookmarks')) || [];
 bookmarks = bookmarks.map(bm => ({ ...bm, id: bm.id || Date.now() + Math.random() }));
-
-// Global Tags (Menyimpan daftar tag yang dibuat user)
-let globalTags = JSON.parse(localStorage.getItem('myTags')) || [];
-
-let pendingNewTags = []; // Menyimpan tag saat membuat link baru
-let editingBookmarkId = null; // Menyimpan ID link yang sedang diedit
+let globalTags = JSON.parse(localStorage.getItem('myTags')) || ['Bagus', 'Menarik', 'Ringan', 'End', 'Axed'];
+let pendingNewTags = []; 
+let editingBookmarkId = null; 
 
 // Simpan Data
 function saveData() { localStorage.setItem('myBookmarks', JSON.stringify(bookmarks)); }
 function saveTags() { localStorage.setItem('myTags', JSON.stringify(globalTags)); }
 
-// ================= 1. MANAGE GLOBAL TAGS (GAMBAR 2) =================
+// ================= CUSTOM DIALOGS (PENGGANTI PROMPT & CONFIRM) =================
+function customPrompt(message, defaultValue = '') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('customPromptModal');
+        const msgEl = document.getElementById('promptMessage');
+        const inputEl = document.getElementById('promptInput');
+        const btnOk = document.getElementById('promptOk');
+        const btnCancel = document.getElementById('promptCancel');
+
+        msgEl.innerText = message;
+        inputEl.value = defaultValue;
+        modal.style.display = 'flex';
+        inputEl.focus();
+
+        const cleanup = () => { modal.style.display = 'none'; btnOk.onclick = null; btnCancel.onclick = null; inputEl.onkeydown = null; };
+        
+        btnOk.onclick = () => { cleanup(); resolve(inputEl.value); };
+        btnCancel.onclick = () => { cleanup(); resolve(null); };
+        inputEl.onkeydown = (e) => { if (e.key === 'Enter') { cleanup(); resolve(inputEl.value); } };
+    });
+}
+
+function customConfirm(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('customConfirmModal');
+        const msgEl = document.getElementById('confirmMessage');
+        const btnOk = document.getElementById('confirmOk');
+        const btnCancel = document.getElementById('confirmCancel');
+
+        msgEl.innerText = message;
+        modal.style.display = 'flex';
+
+        const cleanup = () => { modal.style.display = 'none'; btnOk.onclick = null; btnCancel.onclick = null; };
+        
+        btnOk.onclick = () => { cleanup(); resolve(true); };
+        btnCancel.onclick = () => { cleanup(); resolve(false); };
+    });
+}
+
+// ================= 1. MANAGE GLOBAL TAGS =================
 
 const openManageTagsBtn = document.getElementById('openManageTagsBtn');
 const closeManageTagsBtn = document.getElementById('closeManageTagsBtn');
 const globalTagsList = document.getElementById('globalTagsList');
 const addNewTagBtn = document.getElementById('addNewTagBtn');
 
-// Ikon SVG untuk Pencil dan Trash
 const pencilIcon = `<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
 const trashIcon = `<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
 
@@ -48,20 +83,19 @@ function renderManageTags() {
 openManageTagsBtn.onclick = () => { renderManageTags(); manageTagsModal.style.display = 'flex'; }
 closeManageTagsBtn.onclick = () => manageTagsModal.style.display = 'none';
 
-addNewTagBtn.onclick = () => {
-    const newTag = prompt("Masukkan nama kategori/tag baru:");
+addNewTagBtn.onclick = async () => {
+    const newTag = await customPrompt("Masukkan nama kategori/tag baru:");
     if (newTag && newTag.trim() !== '' && !globalTags.includes(newTag.trim())) {
         globalTags.push(newTag.trim());
         saveTags(); renderManageTags();
     }
 }
 
-window.editGlobalTag = function(idx) {
+window.editGlobalTag = async function(idx) {
     const oldTag = globalTags[idx];
-    const newTag = prompt("Edit nama kategori/tag:", oldTag);
+    const newTag = await customPrompt("Edit nama kategori/tag:", oldTag);
     if (newTag && newTag.trim() !== '' && newTag !== oldTag) {
         globalTags[idx] = newTag.trim();
-        // Update tag yang sama di semua link tersimpan
         bookmarks.forEach(bm => {
             if(bm.tags.custom) {
                 const tIdx = bm.tags.custom.indexOf(oldTag);
@@ -72,11 +106,11 @@ window.editGlobalTag = function(idx) {
     }
 }
 
-window.deleteGlobalTag = function(idx) {
+window.deleteGlobalTag = async function(idx) {
     const tagToDelete = globalTags[idx];
-    if (confirm(`Yakin ingin menghapus tag "${tagToDelete}"?`)) {
+    const isConfirmed = await customConfirm(`Yakin ingin menghapus tag "${tagToDelete}"?`);
+    if (isConfirmed) {
         globalTags.splice(idx, 1);
-        // Hapus dari semua link
         bookmarks.forEach(bm => {
             if(bm.tags.custom) bm.tags.custom = bm.tags.custom.filter(t => t !== tagToDelete);
         });
@@ -94,7 +128,6 @@ const editTitleGroup = document.getElementById('editTitleGroup');
 const editBmTitle = document.getElementById('editBmTitle');
 const editModalTitle = document.getElementById('editModalTitle');
 
-// Fungsi pembantu render checkbox list dalam popup edit
 function renderCheckboxList(selectedTags) {
     editBmTagsList.innerHTML = globalTags.map(tag => `
         <label class="checkbox-item">
@@ -104,16 +137,14 @@ function renderCheckboxList(selectedTags) {
     `).join('');
 }
 
-// A. Mode: Memilih Tag untuk Link Baru
 openSelectTagsBtn.onclick = () => {
-    editingBookmarkId = null; // Menandakan mode 'New Link'
+    editingBookmarkId = null;
     editModalTitle.innerText = "Pilih Custom Tags";
-    editTitleGroup.style.display = 'none'; // Sembunyikan input judul
+    editTitleGroup.style.display = 'none';
     renderCheckboxList(pendingNewTags);
     editBookmarkModal.style.display = 'flex';
 }
 
-// B. Mode: Mengedit Tautan yang Sudah Ada (Menggantikan Gambar 3)
 window.editBookmark = function(id) {
     editingBookmarkId = id;
     const bm = bookmarks.find(b => b.id === id);
@@ -126,28 +157,24 @@ window.editBookmark = function(id) {
     editBookmarkModal.style.display = 'flex';
 }
 
-// Aksi Tombol Simpan di Popup Edit/Select
 saveEditBmBtn.onclick = () => {
     const selected = Array.from(editBmTagsList.querySelectorAll('.tag-checkbox:checked')).map(cb => cb.value);
     
     if (editingBookmarkId === null) {
-        // Mode 'New Link'
         pendingNewTags = selected;
         openSelectTagsBtn.innerText = `🏷️ Set Tag (${pendingNewTags.length})`;
     } else {
-        // Mode 'Edit Link'
         const bmIndex = bookmarks.findIndex(b => b.id === editingBookmarkId);
         bookmarks[bmIndex].title = editBmTitle.value;
         bookmarks[bmIndex].tags.custom = selected;
-        saveData();
-        renderBookmarks();
+        saveData(); renderBookmarks();
     }
     editBookmarkModal.style.display = 'none';
 }
 
 cancelEditBtn.onclick = () => editBookmarkModal.style.display = 'none';
 
-// ================= 3. FILTER (GAMBAR 1) =================
+// ================= 3. FILTER =================
 
 const filterOrder = document.getElementById('filterOrder');
 const filterType = document.getElementById('filterType');
@@ -165,7 +192,6 @@ function populateFilters() {
     
     filterType.value = activeFilters.type; filterSource.value = activeFilters.source;
 
-    // Filter list tag memakai custom globalTags
     filterTagsList.innerHTML = globalTags.map(tag => `
         <label class="checkbox-item">
             <input type="checkbox" value="${tag}" ${activeFilters.customTags.includes(tag) ? 'checked' : ''}>
@@ -185,7 +211,6 @@ document.getElementById('applyFilterBtn').onclick = () => {
     filterModal.style.display = 'none'; renderBookmarks();
 }
 
-// Tutup modal saat klik diluar area
 window.onclick = (e) => { 
     if (e.target == filterModal) filterModal.style.display = 'none'; 
     if (e.target == manageTagsModal) manageTagsModal.style.display = 'none'; 
@@ -237,8 +262,9 @@ function renderBookmarks() {
     });
 }
 
-window.deleteBookmark = function(id) {
-    if(confirm('Hapus tautan ini?')) {
+window.deleteBookmark = async function(id) {
+    const isConfirmed = await customConfirm('Hapus tautan ini?');
+    if(isConfirmed) {
         bookmarks = bookmarks.filter(b => b.id !== id);
         saveData(); renderBookmarks();
     }
@@ -264,13 +290,13 @@ function getFallbackTitle(url) {
 
 btn.addEventListener('click', async () => {
     const url = input.value;
-    if (!url) return alert('Mohon masukkan URL terlebih dahulu!');
+    if (!url) { await customConfirm('Mohon masukkan URL terlebih dahulu!'); return; }
 
     loading.style.display = 'block';
     let rawTitle = '', sourceTag = 'Unknown';
     
     try { sourceTag = new URL(url).hostname.replace('www.', ''); } 
-    catch(e) { alert('URL tidak valid.'); loading.style.display = 'none'; return; }
+    catch(e) { await customConfirm('URL tidak valid.'); loading.style.display = 'none'; return; }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1500);
