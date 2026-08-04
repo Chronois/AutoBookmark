@@ -250,14 +250,24 @@ body {
 
 .list-row:hover { border-color: #8b949e; }
 
-/* Highlight row when selected */
 .list-row.selected {
     border-color: #58a6ff;
     background-color: rgba(88, 166, 255, 0.05);
 }
 
-.list-row.selected .action-group {
-    opacity: 1; /* keep actions visible when selected */
+.list-row.selected .action-group { opacity: 1; }
+
+.row-content-wrapper {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+}
+
+.checkbox-wrapper { padding-top: 2px; }
+
+.row-main-content {
+    flex: 1;
+    min-width: 0; 
 }
 
 .row-header {
@@ -312,6 +322,7 @@ body {
 .btn-icon:hover { background: #30363d; color: #c9d1d9; }
 .btn-icon.delete:hover { background: rgba(248, 81, 73, 0.1); color: #f85149; }
 .btn-icon svg { width: 16px; height: 16px; fill: currentColor; }
+
 
 /* ================= BULK ACTION BAR ================= */
 .bulk-action-bar {
@@ -398,10 +409,11 @@ body {
 
 .tag-group-container { 
     background: #0d1117; border: 1px solid #30363d; border-radius: 8px; 
-    margin-bottom: 6px; padding: 4px; transition: border-color 0.2s;
+    margin-bottom: 6px; padding: 4px; transition: border-color 0.2s, background-color 0.2s;
 }
 .tag-group-container.dragging { opacity: 0.4; border: 2px dashed #58a6ff; }
 .tag-group-container.drag-over { border-color: #58a6ff; background: #161b22; }
+.tag-group-container.drag-over-sub-target { border-color: #58a6ff; background: rgba(88, 166, 255, 0.05); }
 
 .tag-edit-item { 
     display: flex; align-items: center; padding: 8px; gap: 10px; 
