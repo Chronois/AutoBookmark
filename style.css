@@ -29,7 +29,7 @@ body {
     max-width: 1200px;
     display: flex;
     align-items: center;
-    justify-content: space-between; /* To separate title and export/import buttons */
+    justify-content: space-between;
 }
 
 .app-title { 
@@ -41,8 +41,36 @@ body {
 
 .header-actions {
     display: flex;
-    gap: 8px;
+    gap: 12px;
 }
+
+/* Icon Only Buttons (Export & Import) */
+.btn-icon-only {
+    width: 38px;
+    height: 38px;
+    background-color: #21262d;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon-only:hover {
+    background-color: #30363d;
+    border-color: #8b949e;
+    color: #c9d1d9;
+}
+
+.btn-icon-only svg {
+    width: 18px;
+    height: 18px;
+}
+
+.cursor-pointer { cursor: pointer; }
 
 /* ================= MAIN LAYOUT ================= */
 .main-container { 
@@ -105,14 +133,6 @@ body {
     white-space: nowrap;
     width: auto; 
 }
-
-/* Small Buttons (For Header) */
-.btn-sm {
-    height: 32px;
-    font-size: 12px;
-    padding: 0 12px;
-}
-.cursor-pointer { cursor: pointer; }
 
 /* Force 100% width ONLY for grid controls */
 .control-grid .btn { width: 100%; padding: 0; } 
@@ -183,9 +203,12 @@ body {
     font-size: 12.5px; 
     text-decoration: none; 
     word-break: break-all;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 .bookmark-link:hover { text-decoration: underline; color: #79c0ff; }
+.bookmark-link svg { width: 14px; height: 14px; stroke: currentColor; opacity: 0.8;}
 
 /* Tags */
 .tag-container { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px;}
@@ -279,5 +302,4 @@ body {
 /* Mobile Responsive */
 @media (max-width: 650px) {
     .control-grid { grid-template-columns: 1fr; }
-    .header-actions { flex-direction: column; align-items: flex-end; }
 }
