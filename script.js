@@ -22,7 +22,6 @@ bookmarks = bookmarks.map(bm => {
     return { ...bm, id: bm.id || Date.now() + Math.random() };
 });
 
-// Global Tags now support Objects: { name: string, color: string }
 let globalTagsData = JSON.parse(localStorage.getItem('myTagsData')) || [
     { name: 'Favorite', color: '#1f6feb' },
     { name: 'Read Later', color: '#8957e5' },
@@ -31,7 +30,6 @@ let globalTagsData = JSON.parse(localStorage.getItem('myTagsData')) || [
     { name: 'Dropped', color: '#da3633' }
 ];
 
-// Migration legacy string tags to object tags if needed
 globalTagsData = globalTagsData.map(t => typeof t === 'string' ? { name: t, color: '#3b82f6' } : t);
 
 let pendingNewTags = []; 
@@ -44,6 +42,16 @@ function getHostname(urlStr) {
     try { return new URL(urlStr).hostname.replace('www.', ''); } catch(e) { return 'Unknown'; }
 }
 
+// Helper to generate random hex color
+function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
 // Helper to find tag color
 function getTagColor(tagName) {
     const found = globalTagsData.find(t => t.name === tagName);
@@ -54,6 +62,7 @@ function getTagColor(tagName) {
 const editIcon = `<svg viewBox="0 0 16 16"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81l-7.246 7.246a.25.25 0 0 0-.06.1l-.621 2.172 2.172-.62a.25.25 0 0 0 .1-.06l7.094-7.093Z"></path></svg>`;
 const trashIcon = `<svg viewBox="0 0 16 16"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"></path></svg>`;
 const linkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
+const dragIcon = `<svg viewBox="0 0 24 24"><path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm10-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>`;
 
 // ================= CUSTOM DIALOGS =================
 function customPrompt(message, defaultValue = '', titleText = 'Input Required') {
@@ -120,9 +129,9 @@ document.getElementById('importFile').addEventListener('change', (e) => {
         try {
             const parsed = JSON.parse(event.target.result);
             if (parsed.globalTagsData) {
-                globalTagsData = parsed.globalTagsData.map(t => typeof t === 'string' ? { name: t, color: '#3b82f6' } : t);
+                globalTagsData = parsed.globalTagsData.map(t => typeof t === 'string' ? { name: t, color: getRandomColor() } : t);
             } else if (parsed.globalTags) {
-                globalTagsData = parsed.globalTags.map(t => typeof t === 'string' ? { name: t, color: '#3b82f6' } : t);
+                globalTagsData = parsed.globalTags.map(t => typeof t === 'string' ? { name: t, color: getRandomColor() } : t);
             }
             if (parsed.bookmarks) {
                 bookmarks = parsed.bookmarks.map(bm => {
@@ -146,22 +155,66 @@ document.getElementById('importFile').addEventListener('change', (e) => {
     e.target.value = ''; 
 });
 
-// ================= MANAGE GLOBAL TAGS =================
+// ================= MANAGE GLOBAL TAGS & DRAG N DROP =================
 
 const openManageTagsBtn = document.getElementById('openManageTagsBtn');
 const closeManageTagsBtn = document.getElementById('closeManageTagsBtn');
 const globalTagsList = document.getElementById('globalTagsList');
 const addNewTagBtn = document.getElementById('addNewTagBtn');
 
+let draggedIndex = null;
+
 function renderManageTags() {
     globalTagsList.innerHTML = globalTagsData.map((tagObj, idx) => `
-        <div class="tag-edit-item">
+        <div class="tag-edit-item" draggable="true" data-index="${idx}">
+            <span class="drag-handle" title="Drag to reorder">${dragIcon}</span>
             <input type="color" class="tag-color-input" value="${tagObj.color}" onchange="changeTagColor(${idx}, this.value)" title="Change tag color">
             <span class="tag-name">${tagObj.name}</span>
             <button class="btn-icon" onclick="editGlobalTag(${idx})" title="Edit tag">${editIcon}</button>
             <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})" title="Delete tag">${trashIcon}</button>
         </div>
     `).join('');
+
+    initDragAndDrop();
+}
+
+function initDragAndDrop() {
+    const items = globalTagsList.querySelectorAll('.tag-edit-item');
+    items.forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+            draggedIndex = parseInt(item.getAttribute('data-index'));
+            item.classList.add('dragging');
+        });
+
+        item.addEventListener('dragend', (e) => {
+            item.classList.remove('dragging');
+            items.forEach(i => i.classList.remove('drag-over'));
+        });
+
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const targetItem = e.target.closest('.tag-edit-item');
+            if (targetItem && targetItem !== item) {
+                items.forEach(i => i.classList.remove('drag-over'));
+                targetItem.classList.add('drag-over');
+            }
+        });
+
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const targetItem = e.target.closest('.tag-edit-item');
+            if (!targetItem) return;
+            const targetIndex = parseInt(targetItem.getAttribute('data-index'));
+
+            if (draggedIndex !== null && draggedIndex !== targetIndex) {
+                const movedItem = globalTagsData.splice(draggedIndex, 1)[0];
+                globalTagsData.splice(targetIndex, 0, movedItem);
+                saveTags();
+                renderManageTags();
+                renderBookmarks();
+            }
+        });
+    });
 }
 
 openManageTagsBtn.onclick = () => { renderManageTags(); manageTagsModal.style.display = 'flex'; }
@@ -178,7 +231,9 @@ addNewTagBtn.onclick = async () => {
     if (newTagName && newTagName.trim() !== '') {
         const trimmed = newTagName.trim();
         if (!globalTagsData.some(t => t.name === trimmed)) {
-            globalTagsData.push({ name: trimmed, color: '#3b82f6' });
+            // Warna acak otomatis untuk tag baru
+            const randomColor = getRandomColor();
+            globalTagsData.push({ name: trimmed, color: randomColor });
             saveTags(); renderManageTags();
         }
     }
@@ -382,7 +437,14 @@ function renderBookmarks() {
     }
 
     filtered.forEach(bm => {
-        const customTagsHTML = (bm.tags.custom || []).map(tag => {
+        // Sort custom tags to match globalTagsData order
+        const sortedCustomTags = (bm.tags.custom || []).sort((a, b) => {
+            const indexA = globalTagsData.findIndex(t => t.name === a);
+            const indexB = globalTagsData.findIndex(t => t.name === b);
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+
+        const customTagsHTML = sortedCustomTags.map(tag => {
             const color = getTagColor(tag);
             return `<span class="tag custom" style="background: ${color}22; color: ${color}; border-color: ${color}44;">${tag}</span>`;
         }).join('');
@@ -437,7 +499,7 @@ function cleanTitle(rawTitle, domain) {
 function getFallbackTitle(url) {
     try {
         let segments = new URL(url).pathname.split('/').filter(s => s.length > 0);
-        let title = (segments.pop() || new URL(url).hostname).replace(/[-_]/g, ' ');
+        let title = (segments.pop() || urlObj.hostname).replace(/[-_]/g, ' ');
         return title.replace(/\b\w/g, l => l.toUpperCase());
     } catch (e) { return "Unknown Title"; }
 }
