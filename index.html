@@ -66,7 +66,7 @@
         <div id="bulkActionBar" class="bulk-action-bar">
             <span id="bulkCount" style="font-weight: 600; color: #f0f6fc;">0 selected</span>
             <div style="display: flex; gap: 8px;">
-                <button id="bulkTagsBtn" class="btn btn-success">Add Tags</button>
+                <button id="bulkTagsBtn" class="btn btn-success">Modify Tags</button>
                 <button id="bulkDeleteBtn" class="btn btn-outline" style="color: #f85149; border-color: rgba(248,81,73,0.3);">Delete</button>
                 <button id="bulkCancelBtn" class="btn btn-ghost">Cancel</button>
             </div>
@@ -151,21 +151,22 @@
         </div>
     </div>
 
-    <!-- Bulk Add Tags Modal -->
+    <!-- Bulk Add/Remove Tags Modal -->
     <div id="bulkTagModal" class="modal">
         <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
             <div class="modal-header">
-                <h3>Apply Tags to Selected</h3>
+                <h3>Modify Tags for Selected</h3>
             </div>
             <div class="modal-body">
-                <p style="font-size: 13px; color: #8b949e; margin-bottom: 12px;">Selected tags will be added to the existing tags of the chosen bookmarks.</p>
+                <p style="font-size: 13px; color: #8b949e; margin-bottom: 12px;">Select tags below, then choose whether to add or remove them from the chosen bookmarks.</p>
                 <div class="filter-tags-group">
                     <div id="bulkBmTagsList" class="checkbox-list edit-tags-box"></div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button id="cancelBulkTagBtn" class="btn btn-ghost">Cancel</button>
-                <button id="saveBulkTagBtn" class="btn btn-primary">Apply Tags</button>
+                <button id="removeBulkTagBtn" class="btn btn-outline" style="color: #f85149; border-color: rgba(248,81,73,0.3);">Remove Tags</button>
+                <button id="saveBulkTagBtn" class="btn btn-primary">Add Tags</button>
             </div>
         </div>
     </div>
