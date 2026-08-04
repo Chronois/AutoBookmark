@@ -49,10 +49,28 @@
             <span class="spinner"></span> Processing link...
         </div>
 
+        <!-- List Controls (Select All) -->
+        <div id="listControls" class="list-controls" style="display: none;">
+            <label class="select-all-label">
+                <input type="checkbox" id="selectAllCb" class="bm-checkbox"> Select All Visible
+            </label>
+            <span id="visibleCount" style="color: #8b949e; font-size: 13px;"></span>
+        </div>
+
         <!-- Bookmark List -->
         <section class="bookmark-list-container" id="bookmarkList">
             <!-- Items will be generated here -->
         </section>
+
+        <!-- Floating Bulk Action Bar -->
+        <div id="bulkActionBar" class="bulk-action-bar">
+            <span id="bulkCount" style="font-weight: 600; color: #f0f6fc;">0 selected</span>
+            <div style="display: flex; gap: 8px;">
+                <button id="bulkTagsBtn" class="btn btn-success">Add Tags</button>
+                <button id="bulkDeleteBtn" class="btn btn-outline" style="color: #f85149; border-color: rgba(248,81,73,0.3);">Delete</button>
+                <button id="bulkCancelBtn" class="btn btn-ghost">Cancel</button>
+            </div>
+        </div>
     </main>
 
     <!-- ================= MODALS ================= -->
@@ -129,6 +147,25 @@
             <div class="modal-footer">
                 <button id="cancelEditBtn" class="btn btn-ghost" style="color: #ef4444;">Cancel</button>
                 <button id="saveEditBmBtn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Add Tags Modal -->
+    <div id="bulkTagModal" class="modal">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>Apply Tags to Selected</h3>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: #8b949e; margin-bottom: 12px;">Selected tags will be added to the existing tags of the chosen bookmarks.</p>
+                <div class="filter-tags-group">
+                    <div id="bulkBmTagsList" class="checkbox-list edit-tags-box"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelBulkTagBtn" class="btn btn-ghost">Cancel</button>
+                <button id="saveBulkTagBtn" class="btn btn-primary">Apply Tags</button>
             </div>
         </div>
     </div>
