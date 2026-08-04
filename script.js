@@ -196,9 +196,8 @@ function renderManageTags() {
                 <button class="btn-icon" onclick="editGlobalTag(${idx})" title="Edit tag">${editIcon}</button>
                 <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})" title="Delete tag">${trashIcon}</button>
             </div>
-            ${tagObj.subtags && tagObj.subtags.length > 0 ? `
             <div class="subtags-list">
-                ${tagObj.subtags.map((sub, sIdx) => `
+                ${(tagObj.subtags || []).map((sub, sIdx) => `
                     <div class="tag-edit-item subtag-item" draggable="true" data-parent-index="${idx}" data-sub-index="${sIdx}">
                         <span class="drag-handle" title="Drag to reorder subtag">${dragIcon}</span>
                         <span class="tag-name">${sub}</span>
@@ -207,7 +206,6 @@ function renderManageTags() {
                     </div>
                 `).join('')}
             </div>
-            ` : ''}
         </div>
     `).join('');
 
@@ -216,13 +214,16 @@ function renderManageTags() {
 
 function initDragAndDrop() {
     const parentItems = globalTagsList.querySelectorAll('.tag-group-container');
+    const subItems = globalTagsList.querySelectorAll('.subtag-item');
+
+    // PARENT DRAG
     parentItems.forEach(item => {
         item.addEventListener('dragstart', (e) => {
-            if (e.target.classList.contains('subtag-item')) { e.stopPropagation(); return; }
+            if (e.target.closest('.subtag-item')) return;
             draggedParentIndex = parseInt(item.getAttribute('data-index'));
             item.classList.add('dragging');
         });
-
+        
         item.addEventListener('dragend', (e) => {
             if (draggedParentIndex !== null) {
                 item.classList.remove('dragging');
@@ -230,33 +231,59 @@ function initDragAndDrop() {
                 draggedParentIndex = null;
             }
         });
-
+        
         item.addEventListener('dragover', (e) => {
-            if (draggedParentIndex === null) return;
-            e.preventDefault();
-            const targetItem = e.target.closest('.tag-group-container');
-            if (targetItem && targetItem !== item) {
-                parentItems.forEach(i => i.classList.remove('drag-over'));
-                targetItem.classList.add('drag-over');
+            if (draggedParentIndex !== null) {
+                e.preventDefault();
+                const targetItem = e.target.closest('.tag-group-container');
+                if (targetItem && targetItem !== item) {
+                    parentItems.forEach(i => i.classList.remove('drag-over'));
+                    targetItem.classList.add('drag-over');
+                }
+            } else if (draggedSubtagContext !== null) {
+                e.preventDefault();
+                const targetItem = e.target.closest('.tag-group-container');
+                if (targetItem) {
+                    parentItems.forEach(i => i.classList.remove('drag-over-sub-target'));
+                    targetItem.classList.add('drag-over-sub-target');
+                }
             }
         });
 
+        item.addEventListener('dragleave', (e) => {
+            if (draggedSubtagContext !== null) {
+                item.classList.remove('drag-over-sub-target');
+            }
+        });
+        
         item.addEventListener('drop', (e) => {
-            if (draggedParentIndex === null) return;
-            e.preventDefault();
-            const targetItem = e.target.closest('.tag-group-container');
-            if (!targetItem) return;
-            const targetIndex = parseInt(targetItem.getAttribute('data-index'));
+            if (draggedParentIndex !== null) {
+                e.preventDefault();
+                const targetItem = e.target.closest('.tag-group-container');
+                if (!targetItem) return;
+                const targetIndex = parseInt(targetItem.getAttribute('data-index'));
 
-            if (draggedParentIndex !== targetIndex) {
-                const movedItem = globalTagsData.splice(draggedParentIndex, 1)[0];
-                globalTagsData.splice(targetIndex, 0, movedItem);
-                saveTags(); renderManageTags(); renderBookmarks();
+                if (draggedParentIndex !== targetIndex) {
+                    const movedItem = globalTagsData.splice(draggedParentIndex, 1)[0];
+                    globalTagsData.splice(targetIndex, 0, movedItem);
+                    saveTags(); renderManageTags(); renderBookmarks();
+                }
+            } else if (draggedSubtagContext !== null) {
+                e.preventDefault();
+                const targetParent = e.target.closest('.tag-group-container');
+                if (!targetParent) return;
+                
+                const targetParentIdx = parseInt(targetParent.getAttribute('data-index'));
+                
+                // If dropped directly onto a subtag, let subtag drop logic handle it
+                if (e.target.closest('.subtag-item')) return;
+
+                moveSubtag(draggedSubtagContext.parentIdx, draggedSubtagContext.subIdx, targetParentIdx, globalTagsData[targetParentIdx].subtags.length);
             }
         });
     });
 
-    const subItems = globalTagsList.querySelectorAll('.subtag-item');
+    // SUBTAG DRAG
     subItems.forEach(item => {
         item.addEventListener('dragstart', (e) => {
             e.stopPropagation();
@@ -271,15 +298,16 @@ function initDragAndDrop() {
             e.stopPropagation();
             item.classList.remove('dragging-sub');
             subItems.forEach(i => i.classList.remove('drag-over-sub'));
+            parentItems.forEach(i => i.classList.remove('drag-over-sub-target'));
             draggedSubtagContext = null;
         });
 
         item.addEventListener('dragover', (e) => {
             if (!draggedSubtagContext) return;
             e.preventDefault();
-            e.stopPropagation();
+            e.stopPropagation(); 
             const targetItem = e.target.closest('.subtag-item');
-            if (targetItem && targetItem !== item && parseInt(targetItem.getAttribute('data-parent-index')) === draggedSubtagContext.parentIdx) {
+            if (targetItem && targetItem !== item) {
                 subItems.forEach(i => i.classList.remove('drag-over-sub'));
                 targetItem.classList.add('drag-over-sub');
             }
@@ -288,21 +316,51 @@ function initDragAndDrop() {
         item.addEventListener('drop', (e) => {
             if (!draggedSubtagContext) return;
             e.preventDefault();
-            e.stopPropagation();
+            e.stopPropagation(); 
             const targetItem = e.target.closest('.subtag-item');
             if (!targetItem) return;
             
             const targetParentIdx = parseInt(targetItem.getAttribute('data-parent-index'));
             const targetSubIdx = parseInt(targetItem.getAttribute('data-sub-index'));
 
-            if (targetParentIdx === draggedSubtagContext.parentIdx && draggedSubtagContext.subIdx !== targetSubIdx) {
-                const subtagsArray = globalTagsData[targetParentIdx].subtags;
-                const movedSub = subtagsArray.splice(draggedSubtagContext.subIdx, 1)[0];
-                subtagsArray.splice(targetSubIdx, 0, movedSub);
-                saveTags(); renderManageTags(); renderBookmarks();
-            }
+            moveSubtag(draggedSubtagContext.parentIdx, draggedSubtagContext.subIdx, targetParentIdx, targetSubIdx);
         });
     });
+}
+
+async function moveSubtag(oldParentIdx, oldSubIdx, newParentIdx, newSubIdx) {
+    if (oldParentIdx === newParentIdx && oldSubIdx === newSubIdx) return;
+    
+    const subtagName = globalTagsData[oldParentIdx].subtags[oldSubIdx];
+
+    if (oldParentIdx !== newParentIdx && globalTagsData[newParentIdx].subtags.includes(subtagName)) {
+        await customConfirm("A subtag with this name already exists in the target tag.", false);
+        return;
+    }
+
+    globalTagsData[oldParentIdx].subtags.splice(oldSubIdx, 1);
+    
+    let adjustedNewSubIdx = newSubIdx;
+    if (oldParentIdx === newParentIdx && oldSubIdx < newSubIdx) {
+        adjustedNewSubIdx--;
+    }
+
+    globalTagsData[newParentIdx].subtags.splice(adjustedNewSubIdx, 0, subtagName);
+
+    if (oldParentIdx !== newParentIdx) {
+        const oldFullTag = `${globalTagsData[oldParentIdx].name} ➔ ${subtagName}`;
+        const newFullTag = `${globalTagsData[newParentIdx].name} ➔ ${subtagName}`;
+        
+        bookmarks.forEach(bm => {
+            if (bm.tags && bm.tags.custom) {
+                const tIdx = bm.tags.custom.indexOf(oldFullTag);
+                if (tIdx > -1) bm.tags.custom[tIdx] = newFullTag;
+            }
+        });
+        pendingNewTags = pendingNewTags.map(t => t === oldFullTag ? newFullTag : t);
+    }
+
+    saveTags(); saveData(); renderManageTags(); renderBookmarks();
 }
 
 openManageTagsBtn.onclick = () => { renderManageTags(); manageTagsModal.style.display = 'flex'; }
@@ -612,7 +670,6 @@ document.getElementById('selectAllCb').addEventListener('change', (e) => {
     updateBulkActionBar();
 });
 
-// Bulk Tags Modals
 document.getElementById('bulkTagsBtn').onclick = () => {
     document.getElementById('bulkBmTagsList').innerHTML = getCheckboxListHTML([]);
     bulkTagModal.style.display = 'flex';
@@ -637,7 +694,6 @@ document.getElementById('saveBulkTagBtn').onclick = () => {
 
 document.getElementById('cancelBulkTagBtn').onclick = () => { bulkTagModal.style.display = 'none'; };
 
-// Bulk Delete
 document.getElementById('bulkDeleteBtn').onclick = async () => {
     const isConfirmed = await customConfirm(`Delete ${selectedBookmarkIds.size} selected bookmarks?`);
     if (isConfirmed) {
