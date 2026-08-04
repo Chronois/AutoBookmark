@@ -14,15 +14,15 @@
             <h1>🔖 AutoBookmark</h1>
             <div class="search-wrapper">
                 <input type="text" id="searchInput" class="search-input" placeholder="🔍 Cari link, tag, sumber...">
-                <button id="openManageTagsBtn" class="filter-btn manage-btn">🏷️ Tags</button>
-                <button id="openFilterBtn" class="filter-btn">⚙️ Filter</button>
+                <button id="openManageTagsBtn" class="btn btn-secondary">🏷️ Tags</button>
+                <button id="openFilterBtn" class="btn btn-success">⚙️ Filter</button>
             </div>
         </div>
         
         <div class="input-group">
             <input type="url" id="urlInput" placeholder="Masukkan link web di sini..." required>
-            <button id="openSelectTagsBtn" class="select-tags-btn">🏷️ Set Tag (0)</button>
-            <button id="submitBtn">Simpan</button>
+            <button id="openSelectTagsBtn" class="btn btn-outline">🏷️ Set Tag (0)</button>
+            <button id="submitBtn" class="btn btn-primary">Simpan</button>
         </div>
         
         <div class="loading" id="loadingText">
@@ -32,12 +32,12 @@
         <div id="bookmarkList"></div>
     </div>
 
-    <!-- 1. Modal Filter (Telah diperbaiki masalah tumpang tindihnya) -->
+    <!-- Modal Filter -->
     <div id="filterModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <button id="resetFilterBtn" class="reset-btn">Reset</button>
-                <button id="applyFilterBtn" class="apply-btn">Filter</button>
+                <button id="applyFilterBtn" class="btn btn-success">Terapkan Filter</button>
             </div>
             <div class="modal-body">
                 <div class="filter-group">
@@ -50,24 +50,18 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label>Type</label>
-                    <select id="filterType"><option value="all">All</option></select>
-                </div>
-                <div class="filter-group">
                     <label>Source</label>
                     <select id="filterSource"><option value="all">All</option></select>
                 </div>
-                
-                <!-- Diubah ke class terpisah agar tidak kena position:absolute -->
                 <div class="filter-tags-group">
-                    <div class="tags-header">Custom Tags <span>▼</span></div>
+                    <div class="tags-header">Custom Tags</div>
                     <div id="filterTagsList" class="checkbox-list"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 2. Modal Manage Global Tags -->
+    <!-- Modal Manage Global Tags -->
     <div id="manageTagsModal" class="modal">
         <div class="modal-content manage-tags-content">
             <div class="manage-header">
@@ -75,51 +69,51 @@
                 <h3>Edit categories</h3>
             </div>
             <div class="tags-list-container" id="globalTagsList"></div>
-            <button id="addNewTagBtn" class="add-tag-btn">+ Add</button>
+            <button id="addNewTagBtn" class="btn btn-success" style="align-self: flex-end; margin-top: 15px;">+ Add Tag</button>
         </div>
     </div>
 
-    <!-- 3. Modal Edit Bookmark & Set New Bookmark Tags -->
+    <!-- Modal Edit Bookmark & Set New Bookmark Tags -->
     <div id="editBookmarkModal" class="modal">
         <div class="modal-content">
             <h3 id="editModalTitle" style="margin-top:0; margin-bottom:15px; font-size:1.2rem;">Edit Bookmark</h3>
             
             <div id="editTitleGroup" style="margin-bottom:15px;">
-                <label style="font-size:12px; color:#9ca3af; display:block; margin-bottom:5px;">Judul Tautan</label>
+                <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:5px;">Judul Tautan</label>
                 <input type="text" id="editBmTitle" style="width:100%;" placeholder="Judul...">
             </div>
             
-            <label style="font-size:12px; color:#9ca3af; display:block; margin-bottom:5px;">Pilih Custom Tags</label>
-            <div class="checkbox-list" id="editBmTagsList" style="max-height: 200px; border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius:8px;"></div>
+            <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:5px;">Pilih Custom Tags</label>
+            <div class="checkbox-list" id="editBmTagsList" style="max-height: 200px; border: 1px solid #334155; padding: 10px; border-radius:8px;"></div>
             
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-                <button id="cancelEditBtn" class="reset-btn" style="color:#f87171;">Batal</button>
-                <button id="saveEditBmBtn" class="apply-btn">Simpan</button>
+                <button id="cancelEditBtn" class="reset-btn" style="color:#ef4444;">Batal</button>
+                <button id="saveEditBmBtn" class="btn btn-primary">Simpan</button>
             </div>
         </div>
     </div>
 
-    <!-- 4. CUSTOM PROMPT MODAL -->
+    <!-- CUSTOM PROMPT MODAL -->
     <div id="customPromptModal" class="modal" style="z-index: 999;">
         <div class="modal-content custom-dialog">
-            <h3>AutoBookmark menyatakan</h3>
+            <h3>Pemberitahuan</h3>
             <p id="promptMessage"></p>
             <input type="text" id="promptInput" autocomplete="off">
             <div class="dialog-actions">
-                <button id="promptOk" class="btn-dialog-ok">Oke</button>
-                <button id="promptCancel" class="btn-dialog-cancel">Batal</button>
+                <button id="promptCancel" class="btn btn-secondary">Batal</button>
+                <button id="promptOk" class="btn btn-primary">Oke</button>
             </div>
         </div>
     </div>
 
-    <!-- 5. CUSTOM CONFIRM MODAL -->
+    <!-- CUSTOM CONFIRM MODAL -->
     <div id="customConfirmModal" class="modal" style="z-index: 999;">
         <div class="modal-content custom-dialog">
-            <h3>AutoBookmark menyatakan</h3>
+            <h3>Konfirmasi</h3>
             <p id="confirmMessage"></p>
             <div class="dialog-actions">
-                <button id="confirmOk" class="btn-dialog-ok">Oke</button>
-                <button id="confirmCancel" class="btn-dialog-cancel">Batal</button>
+                <button id="confirmCancel" class="btn btn-secondary">Batal</button>
+                <button id="confirmOk" class="btn btn-primary">Oke</button>
             </div>
         </div>
     </div>
