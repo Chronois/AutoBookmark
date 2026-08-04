@@ -3,51 +3,61 @@
 
 body { 
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-    background-color: #010409; /* Warna paling gelap untuk background luar */
+    background-color: #0d1117; /* Background utama menyatu sempurna */
     color: #c9d1d9;
     display: flex; 
     flex-direction: column; 
     align-items: center; 
     min-height: 100vh;
-    padding: 40px 20px; /* Memberi ruang di atas dan bawah layar */
 }
 
-/* ================= LAYOUT UTAMA ================= */
-.app-container { 
-    width: 100%; 
-    max-width: 1100px; /* Diperlebar agar meminimalisir space kosong di layar besar */
-    background: #0d1117; /* Warna card utama */
-    border: 1px solid #30363d;
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+/* ================= HEADER / NAVBAR ================= */
+.navbar {
+    width: 100%;
+    background-color: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 50;
 }
 
-.app-header { 
-    margin-bottom: 24px; 
-    padding-bottom: 16px; 
-    border-bottom: 1px solid #21262d; 
+.navbar-content {
+    width: 100%;
+    max-width: 1200px; /* Lebar maksimal halaman */
+    display: flex;
+    align-items: center;
 }
+
 .app-title { 
     color: #f0f6fc; 
     font-weight: 700; 
-    font-size: 1.6rem; 
+    font-size: 1.5rem; 
     letter-spacing: -0.5px; 
 }
 
-/* ================= AREA KONTROL (GRID COMPACT) ================= */
+/* ================= LAYOUT UTAMA ================= */
+.main-container { 
+    width: 100%; 
+    max-width: 1200px; /* Menyeleraskan dengan navbar */
+    padding: 30px 20px;
+    /* Dihapus: border, background beda, dan box-shadow agar tidak seperti popup */
+}
+
+/* ================= AREA KONTROL ================= */
 .controls-section {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    width: 100%;
     margin-bottom: 30px;
 }
 
-/* Memaksa input sejajar penuh 100% tanpa celah aneh */
+/* Grid rata sisi */
 .control-grid {
     display: grid;
-    grid-template-columns: 1fr 120px 110px;
+    grid-template-columns: 1fr 110px 100px;
     gap: 12px;
     width: 100%;
 }
@@ -76,7 +86,7 @@ body {
 
 .btn {
     height: 40px;
-    width: 100%; /* Memaksa tombol mengisi seluruh grid kolom */
+    width: 100%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -103,7 +113,7 @@ body {
 .btn-secondary:hover { background: #30363d; border-color: #8b949e; }
 
 .btn-outline { background: transparent; color: #8b949e; border: 1px solid #30363d; }
-.btn-outline:hover { color: #c9d1d9; border-color: #8b949e; }
+.btn-outline:hover { color: #c9d1d9; border-color: #8b949e; background: rgba(177, 186, 196, 0.05); }
 
 .btn-ghost { background: transparent; color: #8b949e; border: none; width: auto; }
 .btn-ghost:hover { color: #c9d1d9; background: rgba(177, 186, 196, 0.12); }
@@ -116,7 +126,6 @@ body {
     gap: 12px;
 }
 
-/* Setiap Bookmark menjadi Kartu Baris yang rapi */
 .list-row { 
     padding: 16px 20px; 
     background: #161b22;
@@ -125,12 +134,11 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s;
 }
 
 .list-row:hover { 
-    border-color: #58a6ff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+    border-color: #8b949e; 
 }
 
 .row-header {
@@ -143,7 +151,7 @@ body {
 .bookmark-title { 
     color: #58a6ff; 
     text-decoration: none; 
-    font-size: 14.5px; 
+    font-size: 15px; 
     font-weight: 600; 
     line-height: 1.4; 
 }
@@ -155,7 +163,7 @@ body {
     text-decoration: none; 
     word-break: break-all;
     display: block;
-    margin-top: 2px;
+    margin-top: 4px;
 }
 .bookmark-link:hover { color: #c9d1d9; }
 
@@ -178,11 +186,11 @@ body {
 .tag.source { background: rgba(139, 148, 158, 0.15); color: #8b949e; border-color: rgba(139, 148, 158, 0.2); }
 .tag.custom { background: rgba(88, 166, 255, 0.1); color: #58a6ff; border-color: rgba(88, 166, 255, 0.3); }
 
-/* Tombol Aksi di Kanan Baris */
+/* Tombol Aksi Kanan */
 .action-group { 
     display: flex; 
     gap: 6px; 
-    opacity: 0.6;
+    opacity: 0.5;
     transition: opacity 0.2s;
 }
 .list-row:hover .action-group { opacity: 1; }
@@ -202,7 +210,6 @@ body {
 .btn-icon:hover { background: #30363d; color: #c9d1d9; }
 .btn-icon.delete:hover { background: rgba(248, 81, 73, 0.1); color: #f85149; }
 .btn-icon svg { width: 16px; height: 16px; fill: currentColor; }
-
 
 /* ================= MODALS & POPUPS ================= */
 .modal {
@@ -254,7 +261,7 @@ body {
 .checkbox-item:hover { background: #21262d; }
 .checkbox-item input { width: 14px; height: 14px; cursor: pointer; accent-color: #238636; margin: 0;}
 
-/* Scrollbar Custom */
+/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background-color: #30363d; border-radius: 10px; }
@@ -281,5 +288,4 @@ body {
 /* Responsif Mobile */
 @media (max-width: 650px) {
     .control-grid { grid-template-columns: 1fr; }
-    .btn { width: 100%; }
 }
