@@ -30,7 +30,10 @@
         <!-- Controls Area -->
         <section class="controls-section">
             <div class="control-grid">
-                <input type="text" id="searchInput" class="input-field" placeholder="Search title, tag, or source...">
+                <div class="search-wrapper">
+                    <input type="text" id="searchInput" class="input-field" placeholder="Search title, tag, or source...">
+                    <button id="clearSearchBtn" class="clear-btn" title="Clear search" style="display: none;">✕</button>
+                </div>
                 <button id="openManageTagsBtn" class="btn btn-secondary">Tags</button>
                 <button id="openFilterBtn" class="btn btn-success">Filter</button>
             </div>
