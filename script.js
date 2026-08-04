@@ -12,12 +12,10 @@ const editBookmarkModal = document.getElementById('editBookmarkModal');
 // Data Fetch & Migration (Legacy support)
 let bookmarks = JSON.parse(localStorage.getItem('myBookmarks')) || [];
 bookmarks = bookmarks.map(bm => {
-    // Migration: original_url string to urls array
     if (bm.original_url && !bm.urls) {
         bm.urls = [bm.original_url];
         delete bm.original_url;
     }
-    // Migration: source tag string to array
     if (bm.tags && typeof bm.tags.source === 'string') {
         bm.tags.source = [bm.tags.source];
     }
@@ -38,6 +36,7 @@ function getHostname(urlStr) {
 // ================= ICONS SVG =================
 const editIcon = `<svg viewBox="0 0 16 16"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81l-7.246 7.246a.25.25 0 0 0-.06.1l-.621 2.172 2.172-.62a.25.25 0 0 0 .1-.06l7.094-7.093Z"></path></svg>`;
 const trashIcon = `<svg viewBox="0 0 16 16"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"></path></svg>`;
+const linkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
 
 // ================= CUSTOM DIALOGS =================
 function customPrompt(message, defaultValue = '') {
@@ -249,7 +248,7 @@ saveEditBmBtn.onclick = () => {
     
     if (editingBookmarkId === null) {
         pendingNewTags = selected;
-        openSelectTagsBtn.innerText = `🏷️ Set Tag (${pendingNewTags.length})`;
+        openSelectTagsBtn.innerText = `Set Tag (${pendingNewTags.length})`;
     } else {
         const bmIndex = bookmarks.findIndex(b => b.id === editingBookmarkId);
         const urlInputs = Array.from(document.querySelectorAll('.edit-url-input')).map(inp => inp.value.trim()).filter(val => val !== '');
@@ -348,9 +347,9 @@ function renderBookmarks() {
 
     filtered.forEach(bm => {
         const customTagsHTML = (bm.tags.custom || []).map(tag => `<span class="tag custom">${tag}</span>`).join('');
-        const sourceTagsHTML = (Array.isArray(bm.tags.source) ? bm.tags.source : [bm.tags.source]).map(src => `<span class="tag source">🌐 ${src}</span>`).join('');
+        const sourceTagsHTML = (Array.isArray(bm.tags.source) ? bm.tags.source : [bm.tags.source]).map(src => `<span class="tag source">${src}</span>`).join('');
         
-        const urlsHTML = (bm.urls || []).map(url => `<a href="${url}" target="_blank" class="bookmark-link">🔗 ${url}</a>`).join('');
+        const urlsHTML = (bm.urls || []).map(url => `<a href="${url}" target="_blank" class="bookmark-link">${linkIcon} ${url}</a>`).join('');
 
         const card = document.createElement('div');
         card.className = 'list-row';
@@ -439,6 +438,6 @@ btn.addEventListener('click', async () => {
     loading.style.display = 'none';
     input.value = ''; searchInput.value = '';
     pendingNewTags = [];
-    openSelectTagsBtn.innerText = '🏷️ Set Tag (0)';
+    openSelectTagsBtn.innerText = 'Set Tag (0)';
     renderBookmarks();
 });
