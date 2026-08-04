@@ -9,17 +9,31 @@ const filterModal = document.getElementById('filterModal');
 const manageTagsModal = document.getElementById('manageTagsModal');
 const editBookmarkModal = document.getElementById('editBookmarkModal');
 
-// Data
+// Data Fetch & Migration (Legacy support)
 let bookmarks = JSON.parse(localStorage.getItem('myBookmarks')) || [];
-bookmarks = bookmarks.map(bm => ({ ...bm, id: bm.id || Date.now() + Math.random() }));
+bookmarks = bookmarks.map(bm => {
+    // Migration: original_url string to urls array
+    if (bm.original_url && !bm.urls) {
+        bm.urls = [bm.original_url];
+        delete bm.original_url;
+    }
+    // Migration: source tag string to array
+    if (bm.tags && typeof bm.tags.source === 'string') {
+        bm.tags.source = [bm.tags.source];
+    }
+    return { ...bm, id: bm.id || Date.now() + Math.random() };
+});
 
-// Default Tags translated to English
 let globalTags = JSON.parse(localStorage.getItem('myTags')) || ['Favorite', 'Read Later', 'Reference', 'Completed', 'Dropped'];
 let pendingNewTags = []; 
 let editingBookmarkId = null; 
 
 function saveData() { localStorage.setItem('myBookmarks', JSON.stringify(bookmarks)); }
 function saveTags() { localStorage.setItem('myTags', JSON.stringify(globalTags)); }
+
+function getHostname(urlStr) {
+    try { return new URL(urlStr).hostname.replace('www.', ''); } catch(e) { return 'Unknown'; }
+}
 
 // ================= ICONS SVG =================
 const editIcon = `<svg viewBox="0 0 16 16"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81l-7.246 7.246a.25.25 0 0 0-.06.1l-.621 2.172 2.172-.62a.25.25 0 0 0 .1-.06l7.094-7.093Z"></path></svg>`;
@@ -47,7 +61,7 @@ function customPrompt(message, defaultValue = '') {
     });
 }
 
-function customConfirm(message) {
+function customConfirm(message, showCancel = true) {
     return new Promise((resolve) => {
         const modal = document.getElementById('customConfirmModal');
         const msgEl = document.getElementById('confirmMessage');
@@ -56,6 +70,7 @@ function customConfirm(message) {
 
         msgEl.innerText = message;
         modal.style.display = 'flex';
+        btnCancel.style.display = showCancel ? 'inline-block' : 'none';
 
         const cleanup = () => { modal.style.display = 'none'; btnOk.onclick = null; btnCancel.onclick = null; };
         
@@ -64,7 +79,52 @@ function customConfirm(message) {
     });
 }
 
-// ================= 1. MANAGE GLOBAL TAGS =================
+// ================= EXPORT / IMPORT =================
+document.getElementById('exportBtn').addEventListener('click', () => {
+    const dataObj = { bookmarks, globalTags };
+    const dataStr = JSON.stringify(dataObj, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `AutoBookmark_Backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+document.getElementById('importFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        try {
+            const parsed = JSON.parse(event.target.result);
+            if (parsed.globalTags) globalTags = parsed.globalTags;
+            if (parsed.bookmarks) {
+                bookmarks = parsed.bookmarks.map(bm => {
+                    if (bm.original_url && !bm.urls) {
+                        bm.urls = [bm.original_url];
+                        delete bm.original_url;
+                    }
+                    if (bm.tags && typeof bm.tags.source === 'string') {
+                        bm.tags.source = [bm.tags.source];
+                    }
+                    return { ...bm, id: bm.id || Date.now() + Math.random() };
+                });
+            }
+            saveData(); saveTags(); renderBookmarks();
+            await customConfirm("Data successfully loaded!", false);
+        } catch (err) {
+            await customConfirm("Failed to load file. Please ensure it is a valid JSON.", false);
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
+});
+
+// ================= MANAGE GLOBAL TAGS =================
 
 const openManageTagsBtn = document.getElementById('openManageTagsBtn');
 const closeManageTagsBtn = document.getElementById('closeManageTagsBtn');
@@ -98,7 +158,7 @@ window.editGlobalTag = async function(idx) {
     if (newTag && newTag.trim() !== '' && newTag !== oldTag) {
         globalTags[idx] = newTag.trim();
         bookmarks.forEach(bm => {
-            if(bm.tags.custom) {
+            if(bm.tags && bm.tags.custom) {
                 const tIdx = bm.tags.custom.indexOf(oldTag);
                 if(tIdx > -1) bm.tags.custom[tIdx] = newTag.trim();
             }
@@ -113,20 +173,25 @@ window.deleteGlobalTag = async function(idx) {
     if (isConfirmed) {
         globalTags.splice(idx, 1);
         bookmarks.forEach(bm => {
-            if(bm.tags.custom) bm.tags.custom = bm.tags.custom.filter(t => t !== tagToDelete);
+            if(bm.tags && bm.tags.custom) {
+                bm.tags.custom = bm.tags.custom.filter(t => t !== tagToDelete);
+            }
         });
         saveData(); saveTags(); renderManageTags(); renderBookmarks();
     }
 }
 
-// ================= 2. POPUP EDIT BOOKMARK & SELECT TAGS =================
+// ================= POPUP EDIT BOOKMARK & SELECT TAGS =================
 
 const openSelectTagsBtn = document.getElementById('openSelectTagsBtn');
 const editBmTagsList = document.getElementById('editBmTagsList');
 const saveEditBmBtn = document.getElementById('saveEditBmBtn');
 const cancelEditBtn = document.getElementById('cancelEditBtn');
 const editTitleGroup = document.getElementById('editTitleGroup');
+const editUrlGroup = document.getElementById('editUrlGroup');
 const editBmTitle = document.getElementById('editBmTitle');
+const editUrlList = document.getElementById('editUrlList');
+const addNewUrlBtn = document.getElementById('addNewUrlBtn');
 const editModalTitle = document.getElementById('editModalTitle');
 
 function renderCheckboxList(selectedTags) {
@@ -138,10 +203,29 @@ function renderCheckboxList(selectedTags) {
     `).join('');
 }
 
+function renderEditUrlInputs(urlsArray) {
+    editUrlList.innerHTML = '';
+    urlsArray.forEach(url => createUrlInputNode(url));
+}
+
+function createUrlInputNode(value = '') {
+    const div = document.createElement('div');
+    div.style.cssText = "display: flex; gap: 8px;";
+    div.innerHTML = `
+        <input type="url" class="input-field edit-url-input" value="${value}" placeholder="https://...">
+        <button class="btn btn-outline remove-url-btn" style="width: auto; padding: 0 12px; height: 40px;" title="Remove link">${trashIcon}</button>
+    `;
+    div.querySelector('.remove-url-btn').onclick = function() { div.remove(); };
+    editUrlList.appendChild(div);
+}
+
+addNewUrlBtn.onclick = () => createUrlInputNode('');
+
 openSelectTagsBtn.onclick = () => {
     editingBookmarkId = null;
     editModalTitle.innerText = "Select Custom Tags";
     editTitleGroup.style.display = 'none';
+    editUrlGroup.style.display = 'none';
     renderCheckboxList(pendingNewTags);
     editBookmarkModal.style.display = 'flex';
 }
@@ -152,8 +236,10 @@ window.editBookmark = function(id) {
     
     editModalTitle.innerText = "Edit Bookmark";
     editTitleGroup.style.display = 'block';
-    editBmTitle.value = bm.title;
+    editUrlGroup.style.display = 'block';
     
+    editBmTitle.value = bm.title;
+    renderEditUrlInputs(bm.urls || []);
     renderCheckboxList(bm.tags.custom || []);
     editBookmarkModal.style.display = 'flex';
 }
@@ -166,8 +252,13 @@ saveEditBmBtn.onclick = () => {
         openSelectTagsBtn.innerText = `🏷️ Set Tag (${pendingNewTags.length})`;
     } else {
         const bmIndex = bookmarks.findIndex(b => b.id === editingBookmarkId);
+        const urlInputs = Array.from(document.querySelectorAll('.edit-url-input')).map(inp => inp.value.trim()).filter(val => val !== '');
+        
         bookmarks[bmIndex].title = editBmTitle.value;
+        bookmarks[bmIndex].urls = urlInputs;
+        bookmarks[bmIndex].tags.source = [...new Set(urlInputs.map(url => getHostname(url)))];
         bookmarks[bmIndex].tags.custom = selected;
+        
         saveData(); renderBookmarks();
     }
     editBookmarkModal.style.display = 'none';
@@ -175,7 +266,7 @@ saveEditBmBtn.onclick = () => {
 
 cancelEditBtn.onclick = () => editBookmarkModal.style.display = 'none';
 
-// ================= 3. FILTER =================
+// ================= FILTER =================
 
 const filterOrder = document.getElementById('filterOrder');
 const filterSource = document.getElementById('filterSource');
@@ -185,7 +276,13 @@ let activeFilters = { order: 'newest', source: 'all', customTags: [] };
 
 function populateFilters() {
     let sources = new Set();
-    bookmarks.forEach(bm => { sources.add(bm.tags.source); });
+    bookmarks.forEach(bm => {
+        if(Array.isArray(bm.tags.source)) {
+            bm.tags.source.forEach(s => sources.add(s));
+        } else if(bm.tags.source) {
+            sources.add(bm.tags.source);
+        }
+    });
 
     filterSource.innerHTML = '<option value="all">All Sources</option>' + [...sources].map(s => `<option value="${s}">${s}</option>`).join('');
     filterSource.value = activeFilters.source;
@@ -225,10 +322,15 @@ function renderBookmarks() {
     const term = searchInput.value.toLowerCase();
 
     let filtered = bookmarks.filter(bm => {
-        const customString = bm.tags.custom ? bm.tags.custom.join(' ') : '';
-        const matchSearch = `${bm.title} ${bm.original_url} ${bm.tags.source} ${customString}`.toLowerCase().includes(term);
-        const matchSource = activeFilters.source === 'all' || bm.tags.source === activeFilters.source;
+        const customString = (bm.tags.custom || []).join(' ');
+        const urlsString = (bm.urls || []).join(' ');
+        const sourceArr = Array.isArray(bm.tags.source) ? bm.tags.source : [bm.tags.source || ''];
+        const sourcesString = sourceArr.join(' ');
+        
+        const matchSearch = `${bm.title} ${urlsString} ${sourcesString} ${customString}`.toLowerCase().includes(term);
+        const matchSource = activeFilters.source === 'all' || sourceArr.includes(activeFilters.source);
         const matchTags = activeFilters.customTags.length === 0 || activeFilters.customTags.some(t => bm.tags.custom && bm.tags.custom.includes(t));
+        
         return matchSearch && matchSource && matchTags;
     });
 
@@ -246,14 +348,19 @@ function renderBookmarks() {
 
     filtered.forEach(bm => {
         const customTagsHTML = (bm.tags.custom || []).map(tag => `<span class="tag custom">${tag}</span>`).join('');
+        const sourceTagsHTML = (Array.isArray(bm.tags.source) ? bm.tags.source : [bm.tags.source]).map(src => `<span class="tag source">🌐 ${src}</span>`).join('');
         
+        const urlsHTML = (bm.urls || []).map(url => `<a href="${url}" target="_blank" class="bookmark-link">🔗 ${url}</a>`).join('');
+
         const card = document.createElement('div');
         card.className = 'list-row';
         card.innerHTML = `
             <div class="row-header">
-                <div style="overflow: hidden;">
-                    <a href="${bm.original_url}" target="_blank" class="bookmark-title">${bm.title}</a>
-                    <a href="${bm.original_url}" target="_blank" class="bookmark-link">${bm.original_url}</a>
+                <div style="overflow: hidden; width: 100%;">
+                    <div class="bookmark-title">${bm.title}</div>
+                    <div class="bookmark-link-group">
+                        ${urlsHTML}
+                    </div>
                 </div>
                 <div class="action-group">
                     <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
@@ -261,7 +368,7 @@ function renderBookmarks() {
                 </div>
             </div>
             <div class="tag-container">
-                <span class="tag source">🌐 ${bm.tags.source}</span>
+                ${sourceTagsHTML}
                 ${customTagsHTML}
             </div>
         `;
@@ -298,13 +405,13 @@ function getFallbackTitle(url) {
 
 btn.addEventListener('click', async () => {
     const url = input.value;
-    if (!url) { await customConfirm('Link cannot be empty!'); return; }
+    if (!url) { await customConfirm('Link cannot be empty!', false); return; }
 
     loading.style.display = 'block';
     let rawTitle = '', sourceTag = 'Unknown';
     
-    try { sourceTag = new URL(url).hostname.replace('www.', ''); } 
-    catch(e) { await customConfirm('Invalid link format.'); loading.style.display = 'none'; return; }
+    try { sourceTag = getHostname(url); } 
+    catch(e) { await customConfirm('Invalid link format.', false); loading.style.display = 'none'; return; }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1500);
@@ -323,9 +430,9 @@ btn.addEventListener('click', async () => {
 
     bookmarks.unshift({
         id: Date.now(),
-        original_url: url,
+        urls: [url],
         title: cleanTitle(rawTitle, sourceTag),
-        tags: { source: sourceTag, custom: [...pendingNewTags] }
+        tags: { source: [sourceTag], custom: [...pendingNewTags] }
     });
 
     saveData();
