@@ -257,19 +257,6 @@ body {
 
 .list-row.selected .action-group { opacity: 1; }
 
-.row-content-wrapper {
-    display: flex;
-    gap: 15px;
-    width: 100%;
-}
-
-.checkbox-wrapper { padding-top: 2px; }
-
-.row-main-content {
-    flex: 1;
-    min-width: 0; 
-}
-
 .row-header {
     display: flex;
     justify-content: space-between;
@@ -304,14 +291,20 @@ body {
 .bookmark-link:hover { text-decoration: underline; color: #79c0ff; }
 .bookmark-link svg { width: 14px; height: 14px; stroke: currentColor; opacity: 0.8;}
 
-/* Tags */
-.tag-container { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px;}
-.tag { padding: 4px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 500; border: 1px solid transparent; }
-.tag.source { background: rgba(35, 134, 54, 0.15); color: #3fb950; border-color: rgba(35, 134, 54, 0.3); }
-.tag.custom { border: 1px solid rgba(255, 255, 255, 0.15); }
+/* Right Action Controls */
+.action-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex-shrink: 0;
+}
 
-/* Right Action Buttons */
-.action-group { display: flex; gap: 6px; opacity: 0.5; transition: opacity 0.2s; }
+.action-group { 
+    display: flex; 
+    gap: 6px; 
+    opacity: 0.5; 
+    transition: opacity 0.2s; 
+}
 .list-row:hover .action-group { opacity: 1; }
 
 .btn-icon {
@@ -323,6 +316,11 @@ body {
 .btn-icon.delete:hover { background: rgba(248, 81, 73, 0.1); color: #f85149; }
 .btn-icon svg { width: 16px; height: 16px; fill: currentColor; }
 
+/* Tags */
+.tag-container { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px;}
+.tag { padding: 4px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 500; border: 1px solid transparent; }
+.tag.source { background: rgba(35, 134, 54, 0.15); color: #3fb950; border-color: rgba(35, 134, 54, 0.3); }
+.tag.custom { border: 1px solid rgba(255, 255, 255, 0.15); }
 
 /* ================= BULK ACTION BAR ================= */
 .bulk-action-bar {
@@ -383,7 +381,7 @@ body {
     padding: 16px 24px; border-top: 1px solid #30363d;
     background-color: rgba(1, 4, 9, 0.3);
     border-radius: 0 0 12px 12px;
-    flex-wrap: wrap; /* Helps multiple buttons fit on tiny screens */
+    flex-wrap: wrap; 
 }
 
 .filter-group { margin-bottom: 18px; }
