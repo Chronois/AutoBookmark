@@ -277,7 +277,6 @@ function initDragAndDrop() {
                 
                 const targetParentIdx = parseInt(targetParent.getAttribute('data-index'));
                 
-                // If dropped directly onto a subtag, let subtag drop logic handle it
                 if (e.target.closest('.subtag-item')) return;
 
                 moveSubtag(draggedSubtagContext.parentIdx, draggedSubtagContext.subIdx, targetParentIdx, globalTagsData[targetParentIdx].subtags.length);
@@ -386,29 +385,36 @@ addNewTagBtn.onclick = async () => {
 
 window.editGlobalTag = async function(idx) {
     const oldObj = globalTagsData[idx];
-    const newName = await customPrompt("Edit tag name:", oldObj.name, "Edit Tag");
+    const oldName = oldObj.name;
+    const newName = await customPrompt("Edit tag name:", oldName, "Edit Tag");
     
-    if (newName && newName.trim() !== '' && newName.trim() !== oldObj.name) {
+    if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
         const updatedName = newName.trim();
         globalTagsData[idx].name = updatedName;
         
         bookmarks.forEach(bm => {
             if(bm.tags && bm.tags.custom) {
                 bm.tags.custom = bm.tags.custom.map(t => {
-                    if (t === oldObj.name) return updatedName;
-                    if (t.startsWith(`${oldObj.name} ➔ `)) return t.replace(`${oldObj.name} ➔ `, `${updatedName} ➔ `);
+                    if (t === oldName) return updatedName;
+                    if (t.startsWith(`${oldName} ➔ `)) return t.replace(`${oldName} ➔ `, `${updatedName} ➔ `);
                     return t;
                 });
             }
         });
 
         pendingNewTags = pendingNewTags.map(t => {
-            if (t === oldObj.name) return updatedName;
-            if (t.startsWith(`${oldObj.name} ➔ `)) return t.replace(`${oldObj.name} ➔ `, `${updatedName} ➔ `);
+            if (t === oldName) return updatedName;
+            if (t.startsWith(`${oldName} ➔ `)) return t.replace(`${oldName} ➔ `, `${updatedName} ➔ `);
             return t;
         });
 
-        saveData(); saveTags(); renderManageTags(); renderBookmarks();
+        activeFilters.customTags = activeFilters.customTags.map(t => {
+            if (t === oldName) return updatedName;
+            if (t.startsWith(`${oldName} ➔ `)) return t.replace(`${oldName} ➔ `, `${updatedName} ➔ `);
+            return t;
+        });
+
+        saveData(); saveTags(); renderManageTags(); populateFilters(); renderBookmarks();
     }
 }
 
@@ -463,7 +469,9 @@ window.editSubtag = async function(pIdx, sIdx) {
         });
         pendingNewTags = pendingNewTags.map(t => t === oldFullTag ? newFullTag : t);
 
-        saveData(); saveTags(); renderManageTags(); renderBookmarks();
+        activeFilters.customTags = activeFilters.customTags.map(t => t === oldFullTag ? newFullTag : t);
+
+        saveData(); saveTags(); renderManageTags(); populateFilters(); renderBookmarks();
     }
 }
 
@@ -798,28 +806,24 @@ function renderBookmarks() {
         const card = document.createElement('div');
         card.className = rowClass;
         card.innerHTML = `
-            <div class="row-content-wrapper">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" class="bm-checkbox custom-cb" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked, this)" title="Select for bulk action">
-                </div>
-                <div class="row-main-content">
-                    <div class="row-header">
-                        <div style="overflow: hidden; width: 100%;">
-                            <div class="bookmark-title">${bm.title}</div>
-                            <div class="bookmark-link-group">
-                                ${urlsHTML}
-                            </div>
-                        </div>
-                        <div class="action-group">
-                            <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
-                            <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
-                        </div>
-                    </div>
-                    <div class="tag-container">
-                        ${sourceTagsHTML}
-                        ${customTagsHTML}
+            <div class="row-header">
+                <div style="overflow: hidden; width: 100%;">
+                    <div class="bookmark-title">${bm.title}</div>
+                    <div class="bookmark-link-group">
+                        ${urlsHTML}
                     </div>
                 </div>
+                <div class="action-container" style="display: flex; align-items: flex-start; gap: 12px; flex-shrink: 0;">
+                    <input type="checkbox" class="bm-checkbox custom-cb" style="margin-top: 6px;" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked, this)" title="Select for bulk action">
+                    <div class="action-group">
+                        <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
+                        <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
+                    </div>
+                </div>
+            </div>
+            <div class="tag-container">
+                ${sourceTagsHTML}
+                ${customTagsHTML}
             </div>
         `;
         list.appendChild(card);
