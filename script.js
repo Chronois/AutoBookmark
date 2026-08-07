@@ -14,6 +14,7 @@ const bulkTagModal = document.getElementById('bulkTagModal');
 // Bulk Selection State
 let selectedBookmarkIds = new Set();
 let currentlyVisibleIds = [];
+let expandedTagGroups = new Set();
 
 // Data Fetch & Migration
 let bookmarks = JSON.parse(localStorage.getItem('myBookmarks')) || [];
@@ -51,10 +52,18 @@ function saveData() { localStorage.setItem('myBookmarks', JSON.stringify(bookmar
 function saveTags() { localStorage.setItem('myTagsData', JSON.stringify(globalTagsData)); }
 
 function getHostname(urlStr) {
-    try { return new URL(urlStr).hostname.replace('www.', ''); } catch(e) { return 'Unknown'; }
+    try { 
+        let hostname = new URL(urlStr).hostname.replace(/^www\./, ''); 
+        const knownDomains = ['github.io', 'itch.io', 'vercel.app', 'netlify.app', 'herokuapp.com', 'blogspot.com'];
+        for (let d of knownDomains) {
+            if (hostname.endsWith('.' + d) || hostname === d) return d;
+        }
+        return hostname;
+    } catch(e) { return 'Unknown'; }
 }
 
 function getRandomColor() {
+    // Generate only light/bright colors (RGB values 127-255) for readable text
     const r = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
     const g = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
     const b = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
@@ -85,6 +94,8 @@ const trashIcon = `<svg viewBox="0 0 16 16"><path d="M11 1.75V3h2.25a.75.75 0 0 
 const linkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
 const dragIcon = `<svg viewBox="0 0 24 24"><path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm10-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>`;
 const addSubIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+const chevronRightIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+const chevronDownIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
 
 // ================= CUSTOM DIALOGS =================
 function customPrompt(message, defaultValue = '', titleText = 'Input Required') {
@@ -175,6 +186,22 @@ document.getElementById('importFile').addEventListener('change', (e) => {
     e.target.value = ''; 
 });
 
+// ================= TAG TOGGLE UI =================
+window.toggleTagGroup = function(tagName, btnEl) {
+    if (expandedTagGroups.has(tagName)) {
+        expandedTagGroups.delete(tagName);
+    } else {
+        expandedTagGroups.add(tagName);
+    }
+    
+    const wrapper = btnEl.parentElement.parentElement.querySelector('.subtags-list') || btnEl.parentElement.parentElement.querySelector('.subtags-wrapper');
+    if (wrapper) {
+        const isFlex = wrapper.classList.contains('subtags-list');
+        wrapper.style.display = expandedTagGroups.has(tagName) ? (isFlex ? 'flex' : 'block') : 'none';
+        btnEl.innerHTML = expandedTagGroups.has(tagName) ? chevronDownIcon : chevronRightIcon;
+    }
+}
+
 // ================= MANAGE GLOBAL TAGS & DRAG N DROP =================
 
 const openManageTagsBtn = document.getElementById('openManageTagsBtn');
@@ -186,18 +213,24 @@ let draggedParentIndex = null;
 let draggedSubtagContext = null;
 
 function renderManageTags() {
-    globalTagsList.innerHTML = globalTagsData.map((tagObj, idx) => `
+    globalTagsList.innerHTML = globalTagsData.map((tagObj, idx) => {
+        const hasSubtags = tagObj.subtags && tagObj.subtags.length > 0;
+        const isExpanded = expandedTagGroups.has(tagObj.name);
+        const icon = isExpanded ? chevronDownIcon : chevronRightIcon;
+
+        return `
         <div class="tag-group-container" draggable="true" data-index="${idx}">
             <div class="tag-edit-item">
                 <span class="drag-handle" title="Drag to reorder">${dragIcon}</span>
+                ${hasSubtags ? `<button type="button" class="expand-btn" onclick="toggleTagGroup('${tagObj.name.replace(/'/g, "\\'")}', this)">${icon}</button>` : `<div style="width: 24px;"></div>`}
                 <input type="color" class="tag-color-input" value="${tagObj.color}" onchange="changeTagColor(${idx}, this.value)" title="Change tag color">
                 <span class="tag-name">${tagObj.name}</span>
                 <button class="btn-icon" onclick="addSubtag(${idx})" title="Add subtag">${addSubIcon}</button>
                 <button class="btn-icon" onclick="editGlobalTag(${idx})" title="Edit tag">${editIcon}</button>
                 <button class="btn-icon delete" onclick="deleteGlobalTag(${idx})" title="Delete tag">${trashIcon}</button>
             </div>
-            ${tagObj.subtags && tagObj.subtags.length > 0 ? `
-            <div class="subtags-list">
+            ${hasSubtags ? `
+            <div class="subtags-list" style="display: ${isExpanded ? 'flex' : 'none'};">
                 ${tagObj.subtags.map((sub, sIdx) => `
                     <div class="tag-edit-item subtag-item" draggable="true" data-parent-index="${idx}" data-sub-index="${sIdx}">
                         <span class="drag-handle" title="Drag to reorder subtag">${dragIcon}</span>
@@ -209,7 +242,8 @@ function renderManageTags() {
             </div>
             ` : ''}
         </div>
-    `).join('');
+        `
+    }).join('');
 
     initDragAndDrop();
 }
@@ -276,7 +310,6 @@ function initDragAndDrop() {
                 if (!targetParent) return;
                 
                 const targetParentIdx = parseInt(targetParent.getAttribute('data-index'));
-                
                 if (e.target.closest('.subtag-item')) return;
 
                 moveSubtag(draggedSubtagContext.parentIdx, draggedSubtagContext.subIdx, targetParentIdx, globalTagsData[targetParentIdx].subtags.length);
@@ -359,9 +392,14 @@ async function moveSubtag(oldParentIdx, oldSubIdx, newParentIdx, newSubIdx) {
             }
         });
         pendingNewTags = pendingNewTags.map(t => t === oldFullTag ? newFullTag : t);
+        activeFilters.customTags = activeFilters.customTags.map(t => t === oldFullTag ? newFullTag : t);
+        activeFilters.excludeTags = activeFilters.excludeTags.map(t => t === oldFullTag ? newFullTag : t);
+        
+        // Auto expand new parent
+        expandedTagGroups.add(globalTagsData[newParentIdx].name);
     }
 
-    saveTags(); saveData(); renderManageTags(); renderBookmarks();
+    saveTags(); saveData(); renderManageTags(); populateFilters(); renderBookmarks();
 }
 
 openManageTagsBtn.onclick = () => { renderManageTags(); manageTagsModal.style.display = 'flex'; }
@@ -392,6 +430,12 @@ window.editGlobalTag = async function(idx) {
         const updatedName = newName.trim();
         globalTagsData[idx].name = updatedName;
         
+        // Also migrate expand state
+        if (expandedTagGroups.has(oldName)) {
+            expandedTagGroups.delete(oldName);
+            expandedTagGroups.add(updatedName);
+        }
+
         bookmarks.forEach(bm => {
             if(bm.tags && bm.tags.custom) {
                 bm.tags.custom = bm.tags.custom.map(t => {
@@ -414,6 +458,12 @@ window.editGlobalTag = async function(idx) {
             return t;
         });
 
+        activeFilters.excludeTags = activeFilters.excludeTags.map(t => {
+            if (t === oldName) return updatedName;
+            if (t.startsWith(`${oldName} ➔ `)) return t.replace(`${oldName} ➔ `, `${updatedName} ➔ `);
+            return t;
+        });
+
         saveData(); saveTags(); renderManageTags(); populateFilters(); renderBookmarks();
     }
 }
@@ -423,6 +473,8 @@ window.deleteGlobalTag = async function(idx) {
     const isConfirmed = await customConfirm(`Delete tag "${tagToDelete}" and all its subtags?`);
     if (isConfirmed) {
         globalTagsData.splice(idx, 1);
+        expandedTagGroups.delete(tagToDelete);
+        
         bookmarks.forEach(bm => {
             if(bm.tags && bm.tags.custom) {
                 bm.tags.custom = bm.tags.custom.filter(t => t !== tagToDelete && !t.startsWith(`${tagToDelete} ➔ `));
@@ -439,6 +491,7 @@ window.addSubtag = async function(idx) {
         const trimmed = newSub.trim();
         if (!globalTagsData[idx].subtags.includes(trimmed)) {
             globalTagsData[idx].subtags.push(trimmed);
+            expandedTagGroups.add(parentName); // Auto expand on add
             saveTags(); renderManageTags();
         } else {
             await customConfirm("Subtag already exists!", false);
@@ -468,8 +521,8 @@ window.editSubtag = async function(pIdx, sIdx) {
             }
         });
         pendingNewTags = pendingNewTags.map(t => t === oldFullTag ? newFullTag : t);
-
         activeFilters.customTags = activeFilters.customTags.map(t => t === oldFullTag ? newFullTag : t);
+        activeFilters.excludeTags = activeFilters.excludeTags.map(t => t === oldFullTag ? newFullTag : t);
 
         saveData(); saveTags(); renderManageTags(); populateFilters(); renderBookmarks();
     }
@@ -506,23 +559,43 @@ const addNewUrlBtn = document.getElementById('addNewUrlBtn');
 const editModalTitle = document.getElementById('editModalTitle');
 
 function getCheckboxListHTML(selectedTags) {
-    return globalTagsData.map(tagObj => `
-        <label class="checkbox-item">
-            <input type="checkbox" value="${tagObj.name}" class="tag-checkbox custom-cb" ${selectedTags.includes(tagObj.name) ? 'checked' : ''}>
-            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
-            ${tagObj.name}
-        </label>
-        ${(tagObj.subtags || []).map(sub => {
-            const fullVal = `${tagObj.name} ➔ ${sub}`;
-            return `
-            <label class="checkbox-item sub-checkbox">
-                <input type="checkbox" value="${fullVal}" class="tag-checkbox custom-cb" ${selectedTags.includes(fullVal) ? 'checked' : ''}>
-                <span style="display:inline-block; width:10px; height:10px; border-radius:50%; border: 2px solid ${tagObj.color}; margin-right:6px;"></span>
-                ${sub}
-            </label>
-            `;
-        }).join('')}
-    `).join('');
+    return globalTagsData.map(tagObj => {
+        const hasSubtags = tagObj.subtags && tagObj.subtags.length > 0;
+        const isExpanded = expandedTagGroups.has(tagObj.name);
+        const icon = isExpanded ? chevronDownIcon : chevronRightIcon;
+        
+        let html = `
+        <div class="tag-group-cb-container">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                ${hasSubtags ? `<button type="button" class="expand-btn" onclick="toggleTagGroup('${tagObj.name.replace(/'/g, "\\'")}', this)">${icon}</button>` : `<div style="width: 24px;"></div>`}
+                <label class="checkbox-item" style="padding-left: 0;">
+                    <input type="checkbox" value="${tagObj.name}" class="tag-checkbox custom-cb" ${selectedTags.includes(tagObj.name) ? 'checked' : ''}>
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
+                    ${tagObj.name}
+                </label>
+            </div>
+        `;
+        
+        if (hasSubtags) {
+            html += `<div class="subtags-wrapper" style="display: ${isExpanded ? 'block' : 'none'}; padding-left: 20px;">`;
+            html += tagObj.subtags.map(sub => {
+                const fullVal = `${tagObj.name} ➔ ${sub}`;
+                return `
+                <div style="display: flex; align-items: center; gap: 4px; padding-left: 24px;">
+                    <label class="checkbox-item" style="padding-left: 0;">
+                        <input type="checkbox" value="${fullVal}" class="tag-checkbox custom-cb" ${selectedTags.includes(fullVal) ? 'checked' : ''}>
+                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; border: 2px solid ${tagObj.color}; margin-right:6px;"></span>
+                        ${sub}
+                    </label>
+                </div>
+                `;
+            }).join('');
+            html += `</div>`;
+        }
+        
+        html += `</div>`;
+        return html;
+    }).join('');
 }
 
 function renderCheckboxList(selectedTags) {
@@ -597,8 +670,9 @@ cancelEditBtn.onclick = () => editBookmarkModal.style.display = 'none';
 const filterOrder = document.getElementById('filterOrder');
 const filterSource = document.getElementById('filterSource');
 const filterTagsList = document.getElementById('filterTagsList');
+const filterExcludeTagsList = document.getElementById('filterExcludeTagsList');
 
-let activeFilters = { order: 'newest', source: 'all', customTags: [] };
+let activeFilters = { order: 'newest', source: 'all', customTags: [], excludeTags: [] };
 
 function populateFilters() {
     let sources = new Set();
@@ -614,17 +688,19 @@ function populateFilters() {
     filterSource.value = activeFilters.source;
 
     filterTagsList.innerHTML = getCheckboxListHTML(activeFilters.customTags);
+    filterExcludeTagsList.innerHTML = getCheckboxListHTML(activeFilters.excludeTags);
 }
 
 document.getElementById('openFilterBtn').onclick = () => { populateFilters(); filterModal.style.display = 'flex'; }
 document.getElementById('resetFilterBtn').onclick = () => { 
-    activeFilters = { order: 'newest', source: 'all', customTags: [] };
+    activeFilters = { order: 'newest', source: 'all', customTags: [], excludeTags: [] };
     filterOrder.value = 'newest'; populateFilters(); 
 }
 document.getElementById('applyFilterBtn').onclick = () => {
     activeFilters.order = filterOrder.value; 
     activeFilters.source = filterSource.value;
-    activeFilters.customTags = Array.from(filterTagsList.querySelectorAll('input:checked')).map(cb => cb.value);
+    activeFilters.customTags = Array.from(filterTagsList.querySelectorAll('.tag-checkbox:checked')).map(cb => cb.value);
+    activeFilters.excludeTags = Array.from(filterExcludeTagsList.querySelectorAll('.tag-checkbox:checked')).map(cb => cb.value);
     filterModal.style.display = 'none'; renderBookmarks();
 }
 
@@ -751,9 +827,14 @@ function renderBookmarks() {
         
         const matchSearch = `${bm.title} ${urlsString} ${sourcesString} ${customString}`.toLowerCase().includes(term);
         const matchSource = activeFilters.source === 'all' || sourceArr.includes(activeFilters.source);
+        
+        // Include filter
         const matchTags = activeFilters.customTags.length === 0 || activeFilters.customTags.some(t => bm.tags.custom && bm.tags.custom.includes(t));
         
-        return matchSearch && matchSource && matchTags;
+        // Exclude filter
+        const matchExclude = activeFilters.excludeTags.length === 0 || !activeFilters.excludeTags.some(t => bm.tags.custom && bm.tags.custom.includes(t));
+        
+        return matchSearch && matchSource && matchTags && matchExclude;
     });
 
     filtered.sort((a, b) => {
