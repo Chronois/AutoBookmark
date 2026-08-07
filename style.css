@@ -179,7 +179,7 @@ body {
 .btn-ghost { background: transparent; color: #8b949e; border: none; }
 .btn-ghost:hover { color: #c9d1d9; background: rgba(177, 186, 196, 0.12); }
 
-/* ================= REGULAR CHECKBOX ================= */
+/* ================= REGULAR CHECKBOX (Bookmark Selection) ================= */
 .custom-cb {
     appearance: none;
     -webkit-appearance: none;
@@ -216,7 +216,7 @@ body {
     transform: rotate(45deg);
 }
 
-/* ================= TRI-STATE CHECKBOX ================= */
+/* ================= TRI-STATE CHECKBOX (UI Custom) ================= */
 .cb-wrapper {
     display: flex; align-items: center; gap: 10px; font-size: 13.5px; 
     color: #c9d1d9; cursor: pointer; padding: 6px 12px; border-radius: 6px;
@@ -330,7 +330,7 @@ body {
 .tag.source { background: rgba(35, 134, 54, 0.15); color: #3fb950; border-color: rgba(35, 134, 54, 0.3); }
 .tag.custom { border: 1px solid rgba(255, 255, 255, 0.15); }
 
-/* Right Action Controls (Edit & Delete + Checkbox) */
+/* Right Action Controls (Edit, Delete, Checkbox) */
 .action-container {
     display: flex;
     align-items: center;
@@ -365,10 +365,9 @@ body {
 .expand-btn svg { width: 16px; height: 16px; }
 
 /* DBLCLICK SELECTION PREVENTION */
-.subtags-wrapper, .subtags-list {
+.subtags-wrapper, .subtags-list, .tag-group-container, .tag-group-cb-container {
     user-select: none;
 }
-
 
 /* ================= BULK ACTION BAR ================= */
 .bulk-action-bar {
@@ -437,14 +436,6 @@ body {
 
 .checkbox-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 .edit-tags-box { border: 1px solid #30363d; padding: 10px; border-radius: 8px; background: #0d1117; }
-.checkbox-item { 
-    display: flex; align-items: center; gap: 10px; font-size: 13.5px; 
-    color: #c9d1d9; cursor: pointer; padding: 6px 12px; border-radius: 6px;
-    margin: 0;
-    user-select: none;
-}
-.checkbox-item:hover { background: #21262d; }
-.sub-checkbox { margin-left: 28px; }
 .tag-group-cb-container { display: flex; flex-direction: column; }
 
 /* Scrollbar */
