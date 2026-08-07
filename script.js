@@ -65,6 +65,7 @@ function getHostname(urlStr) {
 }
 
 function getRandomColor() {
+    // Generate light/pastel colors for dark background readability
     const r = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
     const g = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
     const b = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
@@ -76,18 +77,6 @@ function getTagColor(tagName) {
     const found = globalTagsData.find(t => t.name === parentName);
     return found ? found.color : '#58a6ff';
 }
-
-// ================= SEARCH BAR CLEAR BUTTON =================
-searchInput.addEventListener('input', () => {
-    clearSearchBtn.style.display = searchInput.value.length > 0 ? 'flex' : 'none';
-    renderBookmarks();
-});
-
-clearSearchBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    clearSearchBtn.style.display = 'none';
-    renderBookmarks();
-});
 
 // ================= ICONS SVG =================
 const editIcon = `<svg viewBox="0 0 16 16"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81l-7.246 7.246a.25.25 0 0 0-.06.1l-.621 2.172 2.172-.62a.25.25 0 0 0 .1-.06l7.094-7.093Z"></path></svg>`;
@@ -140,71 +129,30 @@ function customConfirm(message, showCancel = true) {
     });
 }
 
-// ================= EXPORT / IMPORT =================
-document.getElementById('exportBtn').addEventListener('click', () => {
-    const dataObj = { bookmarks, globalTagsData };
-    const dataStr = JSON.stringify(dataObj, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `AutoBookmark_Backup_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+// ================= SEARCH BAR =================
+searchInput.addEventListener('input', () => {
+    clearSearchBtn.style.display = searchInput.value.length > 0 ? 'flex' : 'none';
+    renderBookmarks();
 });
 
-document.getElementById('importFile').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-        try {
-            const parsed = JSON.parse(event.target.result);
-            if (parsed.globalTagsData) {
-                globalTagsData = parsed.globalTagsData.map(t => typeof t === 'string' ? { name: t, color: getRandomColor(), subtags: [] } : t);
-            }
-            if (parsed.bookmarks) {
-                bookmarks = parsed.bookmarks.map(bm => {
-                    if (bm.original_url && !bm.urls) {
-                        bm.urls = [bm.original_url];
-                        delete bm.original_url;
-                    }
-                    if (bm.tags && typeof bm.tags.source === 'string') {
-                        bm.tags.source = [bm.tags.source];
-                    }
-                    return { ...bm, id: bm.id || Date.now() + Math.random() };
-                });
-            }
-            saveData(); saveTags(); renderBookmarks();
-            await customConfirm("Data successfully loaded!", false);
-        } catch (err) {
-            await customConfirm("Failed to load file. Please ensure it is a valid JSON.", false);
-        }
-    };
-    reader.readAsText(file);
-    e.target.value = ''; 
+clearSearchBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    clearSearchBtn.style.display = 'none';
+    renderBookmarks();
 });
 
-// ================= DOUBLE CLICK TO COLLAPSE SUBTAGS =================
+// ================= DOUBLE CLICK TO COLLAPSE/EXPAND SUBTAGS =================
 document.addEventListener('dblclick', (e) => {
-    const subWrapper = e.target.closest('.subtags-wrapper') || e.target.closest('.subtags-list');
-    const cbItem = e.target.closest('.subtag-item') || e.target.closest('.sub-checkbox') || e.target.closest('.cb-wrapper[data-val*=" ➔ "]');
+    const container = e.target.closest('.tag-group-container') || e.target.closest('.tag-group-cb-container');
+    if (!container) return;
     
-    if (subWrapper || cbItem) {
-        window.getSelection().removeAllRanges();
-        const container = e.target.closest('.tag-group-container') || e.target.closest('.tag-group-cb-container');
-        if (container) {
-            const expandBtn = container.querySelector('.expand-btn');
-            // Check if it's currently expanded (down chevron)
-            if (expandBtn && expandBtn.innerHTML.includes('polyline points="6 9 12 15 18 9"')) {
-                expandBtn.click();
-            }
-        }
-    }
+    // Ignore double clicks exactly on buttons, inputs, or custom checkboxes
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.tri-cb')) return;
+    
+    window.getSelection().removeAllRanges();
+    const expandBtn = container.querySelector('.expand-btn');
+    if (expandBtn) expandBtn.click();
 });
-
 
 // ================= TAG TOGGLE UI =================
 window.toggleTagGroup = function(tagName, btnEl) {
@@ -219,7 +167,7 @@ window.toggleTagGroup = function(tagName, btnEl) {
     }
 }
 
-// ================= TRI-STATE CHECKBOX LOGIC =================
+// ================= TRI-STATE CHECKBOX LOGIC (Filter & Bulk Modify) =================
 function getTriStateListHTML(stateMap, isBulkMode) {
     return globalTagsData.map(tagObj => {
         const hasSubtags = tagObj.subtags && tagObj.subtags.length > 0;
@@ -289,22 +237,23 @@ document.getElementById('filterTagsList').addEventListener('click', handleTriSta
 document.getElementById('bulkBmTagsList').addEventListener('click', handleTriStateClick);
 
 
-// ================= REGULAR CHECKBOX HTML (Set Tag / Edit) =================
+// ================= REGULAR CHECKBOX HTML (Set Tag / Single Edit) =================
 function getRegularCheckboxListHTML(selectedTags) {
     return globalTagsData.map(tagObj => {
         const hasSubtags = tagObj.subtags && tagObj.subtags.length > 0;
         const isExpanded = expandedTagGroups.has(tagObj.name);
         const icon = isExpanded ? chevronDownIcon : chevronRightIcon;
+        const state = selectedTags.includes(tagObj.name) ? 1 : 0;
         
         let html = `
         <div class="tag-group-cb-container">
             <div style="display: flex; align-items: center; gap: 4px;">
                 ${hasSubtags ? `<button type="button" class="expand-btn" onclick="toggleTagGroup('${tagObj.name.replace(/'/g, "\\'")}', this)">${icon}</button>` : `<div style="width: 24px; flex-shrink:0;"></div>`}
-                <label class="checkbox-item" style="padding-left: 0;">
-                    <input type="checkbox" value="${tagObj.name}" class="tag-checkbox custom-cb" ${selectedTags.includes(tagObj.name) ? 'checked' : ''}>
-                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px;"></span>
+                <div class="cb-wrapper regular-cb" data-state="${state}" data-val="${tagObj.name}" style="padding-left:0;">
+                    <div class="tri-cb"></div>
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${tagObj.color}; margin-right:6px; flex-shrink:0;"></span>
                     ${tagObj.name}
-                </label>
+                </div>
             </div>
         `;
         
@@ -312,13 +261,14 @@ function getRegularCheckboxListHTML(selectedTags) {
             html += `<div class="subtags-wrapper" style="display: ${isExpanded ? 'block' : 'none'}; padding-left: 20px;">`;
             html += tagObj.subtags.map(sub => {
                 const fullVal = `${tagObj.name} ➔ ${sub}`;
+                const subState = selectedTags.includes(fullVal) ? 1 : 0;
                 return `
                 <div style="display: flex; align-items: center; gap: 4px; padding-left: 24px;">
-                    <label class="checkbox-item" style="padding-left: 0;">
-                        <input type="checkbox" value="${fullVal}" class="tag-checkbox custom-cb" ${selectedTags.includes(fullVal) ? 'checked' : ''}>
-                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; border: 2px solid ${tagObj.color}; margin-right:6px;"></span>
+                    <div class="cb-wrapper regular-cb" data-state="${subState}" data-val="${fullVal}" style="padding-left:0;">
+                        <div class="tri-cb"></div>
+                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; border: 2px solid ${tagObj.color}; margin-right:6px; flex-shrink:0;"></span>
                         ${sub}
-                    </label>
+                    </div>
                 </div>
                 `;
             }).join('');
@@ -330,9 +280,16 @@ function getRegularCheckboxListHTML(selectedTags) {
     }).join('');
 }
 
+document.getElementById('editBmTagsList').addEventListener('click', (e) => {
+    const wrapper = e.target.closest('.cb-wrapper');
+    if (!wrapper) return;
+    if (e.target.closest('.expand-btn')) return;
+    
+    let currentState = parseInt(wrapper.getAttribute('data-state'));
+    wrapper.setAttribute('data-state', currentState === 1 ? 0 : 1);
+});
 
 // ================= MANAGE GLOBAL TAGS & DRAG N DROP =================
-
 const openManageTagsBtn = document.getElementById('openManageTagsBtn');
 const closeManageTagsBtn = document.getElementById('closeManageTagsBtn');
 const globalTagsList = document.getElementById('globalTagsList');
@@ -381,7 +338,6 @@ function initDragAndDrop() {
     const parentItems = globalTagsList.querySelectorAll('.tag-group-container');
     const subItems = globalTagsList.querySelectorAll('.subtag-item');
 
-    // PARENT DRAG
     parentItems.forEach(item => {
         item.addEventListener('dragstart', (e) => {
             if (e.target.closest('.subtag-item')) return;
@@ -414,10 +370,9 @@ function initDragAndDrop() {
         });
 
         item.addEventListener('dragleave', (e) => {
-            if (draggedSubtagContext !== null) {
-                item.classList.remove('drag-over-sub-target');
-            }
+            if (draggedSubtagContext !== null) item.classList.remove('drag-over-sub-target');
         });
+        
         item.addEventListener('drop', (e) => {
             if (draggedParentIndex !== null) {
                 e.preventDefault();
@@ -441,7 +396,6 @@ function initDragAndDrop() {
         });
     });
 
-    // SUBTAG DRAG
     subItems.forEach(item => {
         item.addEventListener('dragstart', (e) => {
             e.stopPropagation();
@@ -460,8 +414,7 @@ function initDragAndDrop() {
         });
         item.addEventListener('dragover', (e) => {
             if (!draggedSubtagContext) return;
-            e.preventDefault();
-            e.stopPropagation(); 
+            e.preventDefault(); e.stopPropagation(); 
             const targetItem = e.target.closest('.subtag-item');
             if (targetItem && targetItem !== item) {
                 subItems.forEach(i => i.classList.remove('drag-over-sub'));
@@ -470,8 +423,7 @@ function initDragAndDrop() {
         });
         item.addEventListener('drop', (e) => {
             if (!draggedSubtagContext) return;
-            e.preventDefault();
-            e.stopPropagation(); 
+            e.preventDefault(); e.stopPropagation(); 
             const targetItem = e.target.closest('.subtag-item');
             if (!targetItem) return;
             
@@ -487,18 +439,14 @@ async function moveSubtag(oldParentIdx, oldSubIdx, newParentIdx, newSubIdx) {
     if (oldParentIdx === newParentIdx && oldSubIdx === newSubIdx) return;
     
     const subtagName = globalTagsData[oldParentIdx].subtags[oldSubIdx];
-
     if (oldParentIdx !== newParentIdx && globalTagsData[newParentIdx].subtags.includes(subtagName)) {
-        await customConfirm("A subtag with this name already exists in the target tag.", false);
-        return;
+        await customConfirm("A subtag with this name already exists in the target tag.", false); return;
     }
 
     globalTagsData[oldParentIdx].subtags.splice(oldSubIdx, 1);
     
     let adjustedNewSubIdx = newSubIdx;
-    if (oldParentIdx === newParentIdx && oldSubIdx < newSubIdx) {
-        adjustedNewSubIdx--;
-    }
+    if (oldParentIdx === newParentIdx && oldSubIdx < newSubIdx) adjustedNewSubIdx--;
 
     globalTagsData[newParentIdx].subtags.splice(adjustedNewSubIdx, 0, subtagName);
 
@@ -513,10 +461,8 @@ async function moveSubtag(oldParentIdx, oldSubIdx, newParentIdx, newSubIdx) {
             }
         });
         pendingNewTags = pendingNewTags.map(t => t === oldFullTag ? newFullTag : t);
-        
         activeFilters.customTags = activeFilters.customTags.map(t => t === oldFullTag ? newFullTag : t);
         activeFilters.excludeTags = activeFilters.excludeTags.map(t => t === oldFullTag ? newFullTag : t);
-        
         expandedTagGroups.add(globalTagsData[newParentIdx].name);
     }
 
@@ -551,8 +497,7 @@ window.editGlobalTag = async function(idx) {
         const updatedName = newName.trim();
         
         if (globalTagsData.some((t, i) => i !== idx && t.name === updatedName)) {
-             await customConfirm("A tag with this name already exists.", false);
-             return;
+             await customConfirm("A tag with this name already exists.", false); return;
         }
 
         globalTagsData[idx].name = updatedName;
@@ -633,8 +578,7 @@ window.editSubtag = async function(pIdx, sIdx) {
     if (newSub && newSub.trim() !== '' && newSub.trim() !== oldSub) {
         const updatedSub = newSub.trim();
         if (globalTagsData[pIdx].subtags.includes(updatedSub)) {
-            await customConfirm("Subtag already exists!", false);
-            return;
+            await customConfirm("Subtag already exists!", false); return;
         }
 
         globalTagsData[pIdx].subtags[sIdx] = updatedSub;
@@ -671,8 +615,7 @@ window.deleteSubtag = async function(pIdx, sIdx) {
     }
 }
 
-// ================= POPUP EDIT BOOKMARK & SELECT TAGS (Single) =================
-
+// ================= POPUP EDIT BOOKMARK & SELECT TAGS =================
 const openSelectTagsBtn = document.getElementById('openSelectTagsBtn');
 const saveEditBmBtn = document.getElementById('saveEditBmBtn');
 const cancelEditBtn = document.getElementById('cancelEditBtn');
@@ -682,7 +625,6 @@ const editBmTitle = document.getElementById('editBmTitle');
 const editUrlList = document.getElementById('editUrlList');
 const addNewUrlBtn = document.getElementById('addNewUrlBtn');
 const editModalTitle = document.getElementById('editModalTitle');
-const editBmTagsList = document.getElementById('editBmTagsList');
 
 function renderEditUrlInputs(urlsArray) {
     editUrlList.innerHTML = '';
@@ -707,7 +649,7 @@ openSelectTagsBtn.onclick = () => {
     editModalTitle.innerText = "Select Custom Tags";
     editTitleGroup.style.display = 'none';
     editUrlGroup.style.display = 'none';
-    editBmTagsList.innerHTML = getRegularCheckboxListHTML(pendingNewTags);
+    document.getElementById('editBmTagsList').innerHTML = getRegularCheckboxListHTML(pendingNewTags);
     editBookmarkModal.style.display = 'flex';
 }
 
@@ -721,12 +663,13 @@ window.editBookmark = function(id) {
     
     editBmTitle.value = bm.title;
     renderEditUrlInputs(bm.urls || []);
-    editBmTagsList.innerHTML = getRegularCheckboxListHTML(bm.tags.custom || []);
+    document.getElementById('editBmTagsList').innerHTML = getRegularCheckboxListHTML(bm.tags.custom || []);
     editBookmarkModal.style.display = 'flex';
 }
 
 saveEditBmBtn.onclick = () => {
-    const selected = Array.from(editBmTagsList.querySelectorAll('.tag-checkbox:checked')).map(cb => cb.value);
+    const selected = [];
+    document.querySelectorAll('#editBmTagsList .cb-wrapper[data-state="1"]').forEach(el => selected.push(el.getAttribute('data-val')));
     
     if (editingBookmarkId === null) {
         pendingNewTags = selected;
@@ -747,31 +690,25 @@ saveEditBmBtn.onclick = () => {
 
 cancelEditBtn.onclick = () => editBookmarkModal.style.display = 'none';
 
-// ================= FILTER =================
 
+// ================= FILTER =================
 const filterOrder = document.getElementById('filterOrder');
 const filterSource = document.getElementById('filterSource');
-const filterTagsList = document.getElementById('filterTagsList');
 
 function populateFilters() {
     let sources = new Set();
     bookmarks.forEach(bm => {
-        if(Array.isArray(bm.tags.source)) {
-            bm.tags.source.forEach(s => sources.add(s));
-        } else if(bm.tags.source) {
-            sources.add(bm.tags.source);
-        }
+        if(Array.isArray(bm.tags.source)) bm.tags.source.forEach(s => sources.add(s));
+        else if(bm.tags.source) sources.add(bm.tags.source);
     });
 
     filterSource.innerHTML = '<option value="all">All Sources</option>' + [...sources].map(s => `<option value="${s}">${s}</option>`).join('');
     filterSource.value = activeFilters.source;
 
-    // Use Tri-state logic for Filter
     let stateMap = {};
     activeFilters.customTags.forEach(t => stateMap[t] = 1);
     activeFilters.excludeTags.forEach(t => stateMap[t] = 2);
-    
-    filterTagsList.innerHTML = getTriStateListHTML(stateMap, false);
+    document.getElementById('filterTagsList').innerHTML = getTriStateListHTML(stateMap, false);
 }
 
 document.getElementById('openFilterBtn').onclick = () => { populateFilters(); filterModal.style.display = 'flex'; }
@@ -796,8 +733,16 @@ document.getElementById('applyFilterBtn').onclick = () => {
     filterModal.style.display = 'none'; renderBookmarks();
 }
 
-// ================= BULK ACTIONS & SELECTION =================
+// Global modal close logic
+window.onclick = (e) => { 
+    if (e.target == filterModal) filterModal.style.display = 'none'; 
+    if (e.target == manageTagsModal) manageTagsModal.style.display = 'none'; 
+    if (e.target == editBookmarkModal) editBookmarkModal.style.display = 'none'; 
+    if (e.target == bulkTagModal) bulkTagModal.style.display = 'none';
+}
 
+
+// ================= BULK ACTIONS & SELECTION =================
 window.toggleBookmarkSelection = function(id, isChecked, el) {
     if (isChecked) {
         selectedBookmarkIds.add(id);
@@ -841,9 +786,7 @@ document.getElementById('selectAllCb').addEventListener('change', (e) => {
     updateBulkActionBar();
 });
 
-// Bulk Tags Modals
 document.getElementById('bulkTagsBtn').onclick = () => {
-    // Generate initial state for Bulk based on selected bookmarks
     let stateMap = {};
     const totalSelected = selectedBookmarkIds.size;
 
@@ -889,43 +832,27 @@ document.getElementById('saveBulkTagBtn').onclick = () => {
         }
     });
 
-    saveData();
-    selectedBookmarkIds.clear();
-    bulkTagModal.style.display = 'none';
-    renderBookmarks();
-    updateBulkActionBar();
+    saveData(); selectedBookmarkIds.clear(); bulkTagModal.style.display = 'none';
+    renderBookmarks(); updateBulkActionBar();
 };
 
 document.getElementById('cancelBulkTagBtn').onclick = () => { bulkTagModal.style.display = 'none'; };
 
-// Bulk Delete
 document.getElementById('bulkDeleteBtn').onclick = async () => {
     const isConfirmed = await customConfirm(`Delete ${selectedBookmarkIds.size} selected bookmarks?`);
     if (isConfirmed) {
         bookmarks = bookmarks.filter(bm => !selectedBookmarkIds.has(bm.id));
         selectedBookmarkIds.clear();
-        saveData();
-        renderBookmarks();
-        updateBulkActionBar();
+        saveData(); renderBookmarks(); updateBulkActionBar();
     }
 };
 
 document.getElementById('bulkCancelBtn').onclick = () => {
-    selectedBookmarkIds.clear();
-    renderBookmarks();
-    updateBulkActionBar();
+    selectedBookmarkIds.clear(); renderBookmarks(); updateBulkActionBar();
 };
-
-window.onclick = (e) => { 
-    if (e.target == filterModal) filterModal.style.display = 'none'; 
-    if (e.target == manageTagsModal) manageTagsModal.style.display = 'none'; 
-    if (e.target == editBookmarkModal) editBookmarkModal.style.display = 'none'; 
-    if (e.target == bulkTagModal) bulkTagModal.style.display = 'none';
-}
 
 
 // ================= MAIN RENDER =================
-
 function renderBookmarks() {
     list.innerHTML = '';
     const term = searchInput.value.toLowerCase();
