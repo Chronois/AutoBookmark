@@ -179,7 +179,7 @@ body {
 .btn-ghost { background: transparent; color: #8b949e; border: none; }
 .btn-ghost:hover { color: #c9d1d9; background: rgba(177, 186, 196, 0.12); }
 
-/* ================= CUSTOM CHECKBOX ================= */
+/* ================= REGULAR CHECKBOX ================= */
 .custom-cb {
     appearance: none;
     -webkit-appearance: none;
@@ -214,6 +214,38 @@ body {
     border: solid #c9d1d9;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
+}
+
+/* ================= TRI-STATE CHECKBOX ================= */
+.cb-wrapper {
+    display: flex; align-items: center; gap: 10px; font-size: 13.5px; 
+    color: #c9d1d9; cursor: pointer; padding: 6px 12px; border-radius: 6px;
+    user-select: none;
+}
+.cb-wrapper:hover { background: #21262d; }
+
+.tri-cb {
+    width: 18px; height: 18px; border: 1.5px solid #30363d; border-radius: 4px;
+    background-color: #0d1117; display: inline-flex; align-items: center; 
+    justify-content: center; transition: all 0.2s; flex-shrink: 0;
+}
+.cb-wrapper:hover .tri-cb { border-color: #8b949e; }
+
+/* 1: Check (Include / Add) */
+.cb-wrapper[data-state="1"] .tri-cb { background-color: #1f6feb; border-color: #1f6feb; } 
+.cb-wrapper[data-state="1"] .tri-cb::after {
+    content: ''; width: 4px; height: 8px; border: solid white;
+    border-width: 0 2px 2px 0; transform: rotate(45deg); margin-bottom: 2px;
+}
+/* 2: Cross (Exclude / Remove) */
+.cb-wrapper[data-state="2"] .tri-cb { background-color: #f85149; border-color: #f85149; } 
+.cb-wrapper[data-state="2"] .tri-cb::after {
+    content: '✕'; color: white; font-size: 12px; font-weight: bold; line-height: 1;
+}
+/* 3: Square (Mixed - Bulk Only) */
+.cb-wrapper[data-state="3"] .tri-cb { background-color: #1f6feb; border-color: #1f6feb; } 
+.cb-wrapper[data-state="3"] .tri-cb::after {
+    content: ''; width: 8px; height: 8px; background-color: white; border-radius: 2px;
 }
 
 /* ================= BOOKMARK LIST ================= */
@@ -257,19 +289,6 @@ body {
 }
 
 .list-row.selected .action-group { opacity: 1; }
-
-.row-content-wrapper {
-    display: flex;
-    gap: 15px;
-    width: 100%;
-}
-
-.checkbox-wrapper { padding-top: 2px; }
-
-.row-main-content {
-    flex: 1;
-    min-width: 0; 
-}
 
 .row-header {
     display: flex;
@@ -340,7 +359,7 @@ body {
 .expand-btn {
     background: transparent; border: none; cursor: pointer; color: #8b949e;
     width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-    transition: transform 0.2s; padding: 0; border-radius: 4px;
+    transition: transform 0.2s; padding: 0; border-radius: 4px; flex-shrink: 0;
 }
 .expand-btn:hover { color: #c9d1d9; background: rgba(255,255,255,0.05); }
 .expand-btn svg { width: 16px; height: 16px; }
@@ -411,11 +430,11 @@ body {
 .filter-group { margin-bottom: 18px; }
 .filter-group label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 8px; font-weight: 500;}
 
-.checkbox-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.checkbox-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 .edit-tags-box { border: 1px solid #30363d; padding: 10px; border-radius: 8px; background: #0d1117; }
 .checkbox-item { 
     display: flex; align-items: center; gap: 10px; font-size: 13.5px; 
-    color: #c9d1d9; cursor: pointer; padding: 8px 12px; border-radius: 6px;
+    color: #c9d1d9; cursor: pointer; padding: 6px 12px; border-radius: 6px;
     margin: 0;
 }
 .checkbox-item:hover { background: #21262d; }
@@ -463,7 +482,7 @@ body {
 .tag-name { flex: 1; font-size: 13.5px; color: #c9d1d9; }
 
 .tag-color-input {
-    width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; cursor: pointer;
+    width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; cursor: pointer; flex-shrink: 0;
 }
 .tag-color-input::-webkit-color-swatch-wrapper { padding: 0; }
 .tag-color-input::-webkit-color-swatch { border: 1px solid #30363d; border-radius: 6px; }
