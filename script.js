@@ -65,7 +65,6 @@ function getHostname(urlStr) {
 }
 
 function getRandomColor() {
-    // Generate light/pastel colors for dark background readability
     const r = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
     const g = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
     const b = Math.floor(Math.random() * 128 + 127).toString(16).padStart(2, '0');
@@ -77,6 +76,18 @@ function getTagColor(tagName) {
     const found = globalTagsData.find(t => t.name === parentName);
     return found ? found.color : '#58a6ff';
 }
+
+// ================= SEARCH BAR CLEAR BUTTON =================
+searchInput.addEventListener('input', () => {
+    clearSearchBtn.style.display = searchInput.value.length > 0 ? 'flex' : 'none';
+    renderBookmarks();
+});
+
+clearSearchBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    clearSearchBtn.style.display = 'none';
+    renderBookmarks();
+});
 
 // ================= ICONS SVG =================
 const editIcon = `<svg viewBox="0 0 16 16"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81l-7.246 7.246a.25.25 0 0 0-.06.1l-.621 2.172 2.172-.62a.25.25 0 0 0 .1-.06l7.094-7.093Z"></path></svg>`;
@@ -129,44 +140,6 @@ function customConfirm(message, showCancel = true) {
     });
 }
 
-// ================= SEARCH BAR =================
-searchInput.addEventListener('input', () => {
-    clearSearchBtn.style.display = searchInput.value.length > 0 ? 'flex' : 'none';
-    renderBookmarks();
-});
-
-clearSearchBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    clearSearchBtn.style.display = 'none';
-    renderBookmarks();
-});
-
-// ================= DOUBLE CLICK TO COLLAPSE/EXPAND SUBTAGS =================
-document.addEventListener('dblclick', (e) => {
-    const container = e.target.closest('.tag-group-container') || e.target.closest('.tag-group-cb-container');
-    if (!container) return;
-    
-    // Ignore double clicks exactly on buttons, inputs, or custom checkboxes
-    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.tri-cb')) return;
-    
-    window.getSelection().removeAllRanges();
-    const expandBtn = container.querySelector('.expand-btn');
-    if (expandBtn) expandBtn.click();
-});
-
-// ================= TAG TOGGLE UI =================
-window.toggleTagGroup = function(tagName, btnEl) {
-    if (expandedTagGroups.has(tagName)) expandedTagGroups.delete(tagName);
-    else expandedTagGroups.add(tagName);
-    
-    const wrapper = btnEl.parentElement.parentElement.querySelector('.subtags-list') || btnEl.parentElement.parentElement.querySelector('.subtags-wrapper');
-    if (wrapper) {
-        const isFlex = wrapper.classList.contains('subtags-list');
-        wrapper.style.display = expandedTagGroups.has(tagName) ? (isFlex ? 'flex' : 'block') : 'none';
-        btnEl.innerHTML = expandedTagGroups.has(tagName) ? chevronDownIcon : chevronRightIcon;
-    }
-}
-
 // ================= EXPORT / IMPORT =================
 document.getElementById('exportBtn').addEventListener('click', () => {
     const dataObj = { bookmarks, globalTagsData };
@@ -177,12 +150,9 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     const a = document.createElement('a');
     a.href = url;
     a.download = `AutoBookmark_Backup_${new Date().toISOString().slice(0,10)}.json`;
-    
-    // Perbaikan untuk fungsi klik pada berbagai browser
     document.body.appendChild(a); 
     a.click();
     document.body.removeChild(a);
-    
     URL.revokeObjectURL(url);
 });
 
@@ -218,6 +188,31 @@ document.getElementById('importFile').addEventListener('change', (e) => {
     reader.readAsText(file);
     e.target.value = ''; 
 });
+
+// ================= DOUBLE CLICK TO COLLAPSE/EXPAND SUBTAGS =================
+document.addEventListener('dblclick', (e) => {
+    const container = e.target.closest('.tag-group-container') || e.target.closest('.tag-group-cb-container');
+    if (!container) return;
+    
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.tri-cb')) return;
+    
+    window.getSelection().removeAllRanges();
+    const expandBtn = container.querySelector('.expand-btn');
+    if (expandBtn) expandBtn.click();
+});
+
+// ================= TAG TOGGLE UI =================
+window.toggleTagGroup = function(tagName, btnEl) {
+    if (expandedTagGroups.has(tagName)) expandedTagGroups.delete(tagName);
+    else expandedTagGroups.add(tagName);
+    
+    const wrapper = btnEl.parentElement.parentElement.querySelector('.subtags-list') || btnEl.parentElement.parentElement.querySelector('.subtags-wrapper');
+    if (wrapper) {
+        const isFlex = wrapper.classList.contains('subtags-list');
+        wrapper.style.display = expandedTagGroups.has(tagName) ? (isFlex ? 'flex' : 'block') : 'none';
+        btnEl.innerHTML = expandedTagGroups.has(tagName) ? chevronDownIcon : chevronRightIcon;
+    }
+}
 
 // ================= TRI-STATE CHECKBOX LOGIC (Filter & Bulk Modify) =================
 function getTriStateListHTML(stateMap, isBulkMode) {
@@ -287,7 +282,6 @@ function handleTriStateClick(e) {
 
 document.getElementById('filterTagsList').addEventListener('click', handleTriStateClick);
 document.getElementById('bulkBmTagsList').addEventListener('click', handleTriStateClick);
-
 
 // ================= REGULAR CHECKBOX HTML (Set Tag / Single Edit) =================
 function getRegularCheckboxListHTML(selectedTags) {
@@ -422,9 +416,7 @@ function initDragAndDrop() {
         });
 
         item.addEventListener('dragleave', (e) => {
-            if (draggedSubtagContext !== null) {
-                item.classList.remove('drag-over-sub-target');
-            }
+            if (draggedSubtagContext !== null) item.classList.remove('drag-over-sub-target');
         });
         
         item.addEventListener('drop', (e) => {
@@ -468,8 +460,7 @@ function initDragAndDrop() {
         });
         item.addEventListener('dragover', (e) => {
             if (!draggedSubtagContext) return;
-            e.preventDefault();
-            e.stopPropagation(); 
+            e.preventDefault(); e.stopPropagation(); 
             const targetItem = e.target.closest('.subtag-item');
             if (targetItem && targetItem !== item) {
                 subItems.forEach(i => i.classList.remove('drag-over-sub'));
@@ -478,8 +469,7 @@ function initDragAndDrop() {
         });
         item.addEventListener('drop', (e) => {
             if (!draggedSubtagContext) return;
-            e.preventDefault();
-            e.stopPropagation(); 
+            e.preventDefault(); e.stopPropagation(); 
             const targetItem = e.target.closest('.subtag-item');
             if (!targetItem) return;
             
@@ -710,10 +700,12 @@ openSelectTagsBtn.onclick = () => {
     editBookmarkModal.style.display = 'flex';
 }
 
+// Mengatasi klik edit yang sekarang harus menggunakan ID String (fix bug error delete/edit)
 window.editBookmark = function(id) {
-    editingBookmarkId = id;
-    const bm = bookmarks.find(b => b.id === id);
-    
+    editingBookmarkId = String(id);
+    const bm = bookmarks.find(b => String(b.id) === editingBookmarkId);
+    if (!bm) return;
+
     editModalTitle.innerText = "Edit Bookmark";
     editTitleGroup.style.display = 'block';
     editUrlGroup.style.display = 'block';
@@ -732,15 +724,17 @@ saveEditBmBtn.onclick = () => {
         pendingNewTags = selected;
         openSelectTagsBtn.innerText = `Set Tag (${pendingNewTags.length})`;
     } else {
-        const bmIndex = bookmarks.findIndex(b => b.id === editingBookmarkId);
-        const urlInputs = Array.from(document.querySelectorAll('.edit-url-input')).map(inp => inp.value.trim()).filter(val => val !== '');
-        
-        bookmarks[bmIndex].title = editBmTitle.value;
-        bookmarks[bmIndex].urls = urlInputs;
-        bookmarks[bmIndex].tags.source = [...new Set(urlInputs.map(url => getHostname(url)))];
-        bookmarks[bmIndex].tags.custom = selected;
-        
-        saveData(); renderBookmarks();
+        const bmIndex = bookmarks.findIndex(b => String(b.id) === editingBookmarkId);
+        if (bmIndex > -1) {
+            const urlInputs = Array.from(document.querySelectorAll('.edit-url-input')).map(inp => inp.value.trim()).filter(val => val !== '');
+            
+            bookmarks[bmIndex].title = editBmTitle.value;
+            bookmarks[bmIndex].urls = urlInputs;
+            bookmarks[bmIndex].tags.source = [...new Set(urlInputs.map(url => getHostname(url)))];
+            bookmarks[bmIndex].tags.custom = selected;
+            
+            saveData(); renderBookmarks();
+        }
     }
     editBookmarkModal.style.display = 'none';
 }
@@ -798,11 +792,14 @@ window.onclick = (e) => {
 
 // ================= BULK ACTIONS & SELECTION =================
 window.toggleBookmarkSelection = function(id, isChecked, el) {
+    const strId = String(id);
     if (isChecked) {
-        selectedBookmarkIds.add(id);
+        selectedBookmarkIds.add(strId);
         if (el) el.closest('.list-row').classList.add('selected');
     } else {
-        selectedBookmarkIds.delete(id);
+        selectedBookmarkIds.delete(strId);
+        // Hapus juga apabila tipe data number tertinggal dari sesi sebelumnya
+        selectedBookmarkIds.delete(Number(id)); 
         if (el) el.closest('.list-row').classList.remove('selected');
     }
     updateBulkActionBar();
@@ -826,15 +823,18 @@ function updateSelectAllState() {
         selectAllCb.checked = false;
         return;
     }
-    const allSelected = currentlyVisibleIds.every(id => selectedBookmarkIds.has(id));
+    const allSelected = currentlyVisibleIds.every(id => selectedBookmarkIds.has(String(id)));
     selectAllCb.checked = allSelected;
 }
 
 document.getElementById('selectAllCb').addEventListener('change', (e) => {
     const isChecked = e.target.checked;
     currentlyVisibleIds.forEach(id => {
-        if (isChecked) selectedBookmarkIds.add(id);
-        else selectedBookmarkIds.delete(id);
+        if (isChecked) selectedBookmarkIds.add(String(id));
+        else {
+            selectedBookmarkIds.delete(String(id));
+            selectedBookmarkIds.delete(Number(id));
+        }
     });
     renderBookmarks(); 
     updateBulkActionBar();
@@ -845,7 +845,7 @@ document.getElementById('bulkTagsBtn').onclick = () => {
     const totalSelected = selectedBookmarkIds.size;
 
     function countTagOccurrences(tagVal) {
-        return bookmarks.filter(bm => selectedBookmarkIds.has(bm.id) && bm.tags && bm.tags.custom && bm.tags.custom.includes(tagVal)).length;
+        return bookmarks.filter(bm => selectedBookmarkIds.has(String(bm.id)) && bm.tags && bm.tags.custom && bm.tags.custom.includes(tagVal)).length;
     }
 
     globalTagsData.forEach(t => {
@@ -879,7 +879,7 @@ document.getElementById('saveBulkTagBtn').onclick = () => {
     });
 
     bookmarks.forEach(bm => {
-        if (selectedBookmarkIds.has(bm.id)) {
+        if (selectedBookmarkIds.has(String(bm.id))) {
             if (!bm.tags.custom) bm.tags.custom = [];
             toAdd.forEach(t => { if (!bm.tags.custom.includes(t)) bm.tags.custom.push(t); });
             bm.tags.custom = bm.tags.custom.filter(t => !toRemove.includes(t));
@@ -892,10 +892,21 @@ document.getElementById('saveBulkTagBtn').onclick = () => {
 
 document.getElementById('cancelBulkTagBtn').onclick = () => { bulkTagModal.style.display = 'none'; };
 
+// Mengatasi klik delete yang sekarang harus menggunakan ID String (fix bug error icon tong sampah)
+window.deleteBookmark = async function(id) {
+    const isConfirmed = await customConfirm('Remove this link from the list?');
+    if(isConfirmed) {
+        bookmarks = bookmarks.filter(b => String(b.id) !== String(id));
+        selectedBookmarkIds.delete(String(id));
+        selectedBookmarkIds.delete(Number(id));
+        saveData(); renderBookmarks(); updateBulkActionBar();
+    }
+};
+
 document.getElementById('bulkDeleteBtn').onclick = async () => {
     const isConfirmed = await customConfirm(`Delete ${selectedBookmarkIds.size} selected bookmarks?`);
     if (isConfirmed) {
-        bookmarks = bookmarks.filter(bm => !selectedBookmarkIds.has(bm.id));
+        bookmarks = bookmarks.filter(bm => !selectedBookmarkIds.has(String(bm.id)));
         selectedBookmarkIds.clear();
         saveData(); renderBookmarks(); updateBulkActionBar();
     }
@@ -904,6 +915,7 @@ document.getElementById('bulkDeleteBtn').onclick = async () => {
 document.getElementById('bulkCancelBtn').onclick = () => {
     selectedBookmarkIds.clear(); renderBookmarks(); updateBulkActionBar();
 };
+
 
 // ================= MAIN RENDER =================
 function renderBookmarks() {
@@ -932,7 +944,7 @@ function renderBookmarks() {
         return 0; 
     });
 
-    currentlyVisibleIds = filtered.map(bm => bm.id);
+    currentlyVisibleIds = filtered.map(bm => String(bm.id));
 
     const listControls = document.getElementById('listControls');
     if (filtered.length === 0) {
@@ -969,8 +981,9 @@ function renderBookmarks() {
         
         const urlsHTML = (bm.urls || []).map(url => `<a href="${url}" target="_blank" class="bookmark-link">${linkIcon} ${url}</a>`).join('');
 
-        const isChecked = selectedBookmarkIds.has(bm.id) ? 'checked' : '';
-        const rowClass = selectedBookmarkIds.has(bm.id) ? 'list-row selected' : 'list-row';
+        const strId = String(bm.id);
+        const isChecked = selectedBookmarkIds.has(strId) ? 'checked' : '';
+        const rowClass = selectedBookmarkIds.has(strId) ? 'list-row selected' : 'list-row';
 
         const card = document.createElement('div');
         card.className = rowClass;
@@ -982,12 +995,12 @@ function renderBookmarks() {
                         ${urlsHTML}
                     </div>
                 </div>
-                <div class="action-container" style="display: flex; align-items: flex-start; gap: 12px; flex-shrink: 0;">
-                    <div class="action-group">
-                        <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
-                        <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
+                <div class="action-container" style="display: flex; align-items: center; gap: 14px; flex-shrink: 0;">
+                    <div class="action-group" style="display: flex; align-items: center; gap: 6px;">
+                        <button class="btn-icon" onclick="editBookmark('${strId}')" title="Edit">${editIcon}</button>
+                        <button class="btn-icon delete" onclick="deleteBookmark('${strId}')" title="Delete">${trashIcon}</button>
                     </div>
-                    <input type="checkbox" class="bm-checkbox custom-cb" style="margin-top: 6px;" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked, this)" title="Select for bulk action">
+                    <input type="checkbox" class="bm-checkbox custom-cb" value="${strId}" ${isChecked} onchange="toggleBookmarkSelection('${strId}', this.checked, this)" title="Select for bulk action">
                 </div>
             </div>
             <div class="tag-container">
@@ -998,6 +1011,7 @@ function renderBookmarks() {
         list.appendChild(card);
     });
 }
+
 
 // ================= NEW LINK PROCESS =================
 function cleanTitle(rawTitle, domain) {
