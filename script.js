@@ -167,6 +167,58 @@ window.toggleTagGroup = function(tagName, btnEl) {
     }
 }
 
+// ================= EXPORT / IMPORT =================
+document.getElementById('exportBtn').addEventListener('click', () => {
+    const dataObj = { bookmarks, globalTagsData };
+    const dataStr = JSON.stringify(dataObj, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `AutoBookmark_Backup_${new Date().toISOString().slice(0,10)}.json`;
+    
+    // Perbaikan untuk fungsi klik pada berbagai browser
+    document.body.appendChild(a); 
+    a.click();
+    document.body.removeChild(a);
+    
+    URL.revokeObjectURL(url);
+});
+
+document.getElementById('importFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        try {
+            const parsed = JSON.parse(event.target.result);
+            if (parsed.globalTagsData) {
+                globalTagsData = parsed.globalTagsData.map(t => typeof t === 'string' ? { name: t, color: getRandomColor(), subtags: [] } : t);
+            }
+            if (parsed.bookmarks) {
+                bookmarks = parsed.bookmarks.map(bm => {
+                    if (bm.original_url && !bm.urls) {
+                        bm.urls = [bm.original_url];
+                        delete bm.original_url;
+                    }
+                    if (bm.tags && typeof bm.tags.source === 'string') {
+                        bm.tags.source = [bm.tags.source];
+                    }
+                    return { ...bm, id: bm.id || Date.now() + Math.random() };
+                });
+            }
+            saveData(); saveTags(); renderBookmarks();
+            await customConfirm("Data successfully loaded!", false);
+        } catch (err) {
+            await customConfirm("Failed to load file. Please ensure it is a valid JSON.", false);
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; 
+});
+
 // ================= TRI-STATE CHECKBOX LOGIC (Filter & Bulk Modify) =================
 function getTriStateListHTML(stateMap, isBulkMode) {
     return globalTagsData.map(tagObj => {
@@ -370,7 +422,9 @@ function initDragAndDrop() {
         });
 
         item.addEventListener('dragleave', (e) => {
-            if (draggedSubtagContext !== null) item.classList.remove('drag-over-sub-target');
+            if (draggedSubtagContext !== null) {
+                item.classList.remove('drag-over-sub-target');
+            }
         });
         
         item.addEventListener('drop', (e) => {
@@ -414,7 +468,8 @@ function initDragAndDrop() {
         });
         item.addEventListener('dragover', (e) => {
             if (!draggedSubtagContext) return;
-            e.preventDefault(); e.stopPropagation(); 
+            e.preventDefault();
+            e.stopPropagation(); 
             const targetItem = e.target.closest('.subtag-item');
             if (targetItem && targetItem !== item) {
                 subItems.forEach(i => i.classList.remove('drag-over-sub'));
@@ -423,7 +478,8 @@ function initDragAndDrop() {
         });
         item.addEventListener('drop', (e) => {
             if (!draggedSubtagContext) return;
-            e.preventDefault(); e.stopPropagation(); 
+            e.preventDefault();
+            e.stopPropagation(); 
             const targetItem = e.target.closest('.subtag-item');
             if (!targetItem) return;
             
@@ -461,6 +517,7 @@ async function moveSubtag(oldParentIdx, oldSubIdx, newParentIdx, newSubIdx) {
             }
         });
         pendingNewTags = pendingNewTags.map(t => t === oldFullTag ? newFullTag : t);
+        
         activeFilters.customTags = activeFilters.customTags.map(t => t === oldFullTag ? newFullTag : t);
         activeFilters.excludeTags = activeFilters.excludeTags.map(t => t === oldFullTag ? newFullTag : t);
         expandedTagGroups.add(globalTagsData[newParentIdx].name);
@@ -690,7 +747,6 @@ saveEditBmBtn.onclick = () => {
 
 cancelEditBtn.onclick = () => editBookmarkModal.style.display = 'none';
 
-
 // ================= FILTER =================
 const filterOrder = document.getElementById('filterOrder');
 const filterSource = document.getElementById('filterSource');
@@ -733,14 +789,12 @@ document.getElementById('applyFilterBtn').onclick = () => {
     filterModal.style.display = 'none'; renderBookmarks();
 }
 
-// Global modal close logic
 window.onclick = (e) => { 
     if (e.target == filterModal) filterModal.style.display = 'none'; 
     if (e.target == manageTagsModal) manageTagsModal.style.display = 'none'; 
     if (e.target == editBookmarkModal) editBookmarkModal.style.display = 'none'; 
     if (e.target == bulkTagModal) bulkTagModal.style.display = 'none';
 }
-
 
 // ================= BULK ACTIONS & SELECTION =================
 window.toggleBookmarkSelection = function(id, isChecked, el) {
@@ -851,7 +905,6 @@ document.getElementById('bulkCancelBtn').onclick = () => {
     selectedBookmarkIds.clear(); renderBookmarks(); updateBulkActionBar();
 };
 
-
 // ================= MAIN RENDER =================
 function renderBookmarks() {
     list.innerHTML = '';
@@ -929,12 +982,12 @@ function renderBookmarks() {
                         ${urlsHTML}
                     </div>
                 </div>
-                <div class="action-container">
-                    <input type="checkbox" class="bm-checkbox custom-cb" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked, this)" title="Select for bulk action">
+                <div class="action-container" style="display: flex; align-items: flex-start; gap: 12px; flex-shrink: 0;">
                     <div class="action-group">
                         <button class="btn-icon" onclick="editBookmark(${bm.id})" title="Edit">${editIcon}</button>
                         <button class="btn-icon delete" onclick="deleteBookmark(${bm.id})" title="Delete">${trashIcon}</button>
                     </div>
+                    <input type="checkbox" class="bm-checkbox custom-cb" style="margin-top: 6px;" value="${bm.id}" ${isChecked} onchange="toggleBookmarkSelection(${bm.id}, this.checked, this)" title="Select for bulk action">
                 </div>
             </div>
             <div class="tag-container">
@@ -945,17 +998,6 @@ function renderBookmarks() {
         list.appendChild(card);
     });
 }
-
-window.deleteBookmark = async function(id) {
-    const isConfirmed = await customConfirm('Remove this link from the list?');
-    if(isConfirmed) {
-        bookmarks = bookmarks.filter(b => b.id !== id);
-        selectedBookmarkIds.delete(id);
-        saveData(); renderBookmarks(); updateBulkActionBar();
-    }
-};
-
-renderBookmarks();
 
 // ================= NEW LINK PROCESS =================
 function cleanTitle(rawTitle, domain) {
